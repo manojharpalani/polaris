@@ -1,69 +1,238 @@
-import Image from "next/image";
+"use client";
+
+import { useMemo, useRef, useState } from "react";
+import type {
+  C4Edge,
+  C4Model,
+  C4Node,
+  C4NodeKind,
+  DiagramLevel,
+  RequirementInput,
+  SelectedItem,
+} from "@/lib/c4-schema";
+import { newId } from "@/lib/id";
+import RequirementsForm from "@/components/RequirementsForm";
+import DiagramCanvas from "@/components/DiagramCanvas";
+import Inspector from "@/components/Inspector";
+
+const DEFAULT_NODE_DESCRIPTIONS: Record<C4NodeKind, string> = {
+  person: "Describe who this is and what they need from the system.",
+  softwareSystem: "Describe this system.",
+  externalSystem: "Describe this external system and what it's used for.",
+  container: "Describe what this container does.",
+  datastore: "Describe what this stores.",
+};
 
 export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+  const [lastInput, setLastInput] = useState<RequirementInput | undefined>();
+  const [model, setModel] = useState<C4Model | null>(null);
+  const [level, setLevel] = useState<DiagramLevel>("context");
+  const [selected, setSelected] = useState<SelectedItem>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [editingRequirements, setEditingRequirements] = useState(false);
+  const exportRef = useRef<{ exportPng: () => void; exportSvg: () => void } | null>(null);
+
+  async function generate(input: RequirementInput) {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || "Generation failed");
+      }
+      setModel(json as C4Model);
+      setLastInput(input);
+      setLevel("context");
+      setSelected(null);
+      setEditingRequirements(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const currentGraph = useMemo(() => {
+    if (!model) return null;
+    return level === "context" ? model.context : model.containers;
+  }, [model, level]);
+
+  function mutateGraph(mutator: (nodes: C4Node[], edges: C4Edge[]) => { nodes: C4Node[]; edges: C4Edge[] }) {
+    setModel((prev) => {
+      if (!prev) return prev;
+      const graph = level === "context" ? prev.context : prev.containers;
+      const result = mutator(graph.nodes, graph.edges);
+      return {
+        ...prev,
+        [level === "context" ? "context" : "containers"]: result,
+      };
+    });
+  }
+
+  function updateNode(id: string, patch: Partial<C4Node>) {
+    mutateGraph((nodes, edges) => ({
+      nodes: nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)),
+      edges,
+    }));
+  }
+
+  function deleteNode(id: string) {
+    mutateGraph((nodes, edges) => ({
+      nodes: nodes.filter((n) => n.id !== id),
+      edges: edges.filter((e) => e.source !== id && e.target !== id),
+    }));
+    setSelected(null);
+  }
+
+  function addNode(kind: C4NodeKind) {
+    const id = newId(kind);
+    mutateGraph((nodes, edges) => ({
+      nodes: [
+        ...nodes,
+        {
+          id,
+          kind,
+          name: "New " + kind.replace(/([A-Z])/g, " $1"),
+          description: DEFAULT_NODE_DESCRIPTIONS[kind],
+        },
+      ],
+      edges,
+    }));
+    setSelected({ kind: "node", id });
+  }
+
+  function updateEdge(id: string, patch: Partial<C4Edge>) {
+    mutateGraph((nodes, edges) => ({
+      nodes,
+      edges: edges.map((e) => (e.id === id ? { ...e, ...patch } : e)),
+    }));
+  }
+
+  function deleteEdge(id: string) {
+    mutateGraph((nodes, edges) => ({
+      nodes,
+      edges: edges.filter((e) => e.id !== id),
+    }));
+    setSelected(null);
+  }
+
+  function addEdge(source: string, target: string) {
+    const id = newId(`${source}-${target}`);
+    mutateGraph((nodes, edges) => ({
+      nodes,
+      edges: [...edges, { id, source, target, label: "communicates with" }],
+    }));
+    setSelected({ kind: "edge", id });
+  }
+
+  if (!model || editingRequirements) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <RequirementsForm
+          onSubmit={generate}
+          submitting={submitting}
+          error={error}
+          initial={lastInput}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+      </div>
+    );
+  }
+
+  const selectedNode =
+    selected?.kind === "node" ? currentGraph?.nodes.find((n) => n.id === selected.id) : undefined;
+  const selectedEdge =
+    selected?.kind === "edge" ? currentGraph?.edges.find((e) => e.id === selected.id) : undefined;
+
+  return (
+    <div className="h-screen w-screen flex flex-col bg-slate-100">
+      <header className="h-14 shrink-0 flex items-center justify-between px-4 border-b border-slate-200 bg-white">
+        <div className="flex items-center gap-4 min-w-0">
+          <span className="font-semibold text-slate-900 shrink-0">North Star</span>
+          <span className="text-slate-300">/</span>
+          <span className="text-slate-600 text-sm truncate">{model.systemName}</span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        <div className="flex items-center gap-1 bg-slate-100 rounded-md p-1">
+          <button
+            onClick={() => {
+              setLevel("context");
+              setSelected(null);
+            }}
+            className={`text-sm px-3 py-1 rounded ${
+              level === "context" ? "bg-white shadow-sm text-slate-900" : "text-slate-500"
+            }`}
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+            Context
+          </button>
+          <button
+            onClick={() => {
+              setLevel("container");
+              setSelected(null);
+            }}
+            className={`text-sm px-3 py-1 rounded ${
+              level === "container" ? "bg-white shadow-sm text-slate-900" : "text-slate-500"
+            }`}
+          >
+            Container
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setEditingRequirements(true)}
+            className="text-sm px-3 py-1.5 rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+          >
+            Edit requirements
+          </button>
+          <button
+            onClick={() => exportRef.current?.exportPng()}
+            className="text-sm px-3 py-1.5 rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+          >
+            Export PNG
+          </button>
+          <button
+            onClick={() => exportRef.current?.exportSvg()}
+            className="text-sm px-3 py-1.5 rounded-md bg-slate-900 text-white hover:bg-slate-800"
+          >
+            Export SVG
+          </button>
+        </div>
+      </header>
+
+      <div className="flex-1 flex min-h-0">
+        <div className="flex-1 min-w-0">
+          {currentGraph && (
+            <DiagramCanvas
+              level={level}
+              graph={currentGraph}
+              selected={selected}
+              onSelect={setSelected}
+              onAddNode={addNode}
+              onAddEdge={addEdge}
+              exportRef={exportRef}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          )}
         </div>
-      </main>
+        <aside className="w-[340px] shrink-0 border-l border-slate-200 bg-white overflow-y-auto">
+          <Inspector
+            key={selected ? `${selected.kind}:${selected.id}` : "none"}
+            selected={selected}
+            node={selectedNode}
+            edge={selectedEdge}
+            onUpdateNode={(patch) => selected?.kind === "node" && updateNode(selected.id, patch)}
+            onDeleteNode={() => selected?.kind === "node" && deleteNode(selected.id)}
+            onUpdateEdge={(patch) => selected?.kind === "edge" && updateEdge(selected.id, patch)}
+            onDeleteEdge={() => selected?.kind === "edge" && deleteEdge(selected.id)}
+            onClose={() => setSelected(null)}
+          />
+        </aside>
+      </div>
     </div>
   );
 }

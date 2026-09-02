@@ -10,6 +10,9 @@ export type C4NodeData = {
   technology?: string;
   rationale?: string;
   selected?: boolean;
+  expandable?: boolean;
+  expandLoading?: boolean;
+  onExpand?: () => void;
 };
 
 const KIND_STYLES: Record<
@@ -47,6 +50,18 @@ const KIND_STYLES: Record<
     badge: "Datastore",
     shape: "rounded-b-[28px]",
   },
+  component: {
+    bg: "bg-teal-700",
+    border: "border-teal-400",
+    text: "text-white",
+    badge: "Component",
+  },
+  class: {
+    bg: "bg-emerald-800",
+    border: "border-emerald-500",
+    text: "text-white",
+    badge: "Class",
+  },
 };
 
 export default function C4NodeView({ data }: NodeProps<C4NodeData>) {
@@ -55,7 +70,7 @@ export default function C4NodeView({ data }: NodeProps<C4NodeData>) {
   return (
     <div
       className={[
-        "w-[240px] min-h-[110px] rounded-md border-2 shadow-md px-3 py-2 flex flex-col gap-1 cursor-pointer transition-transform",
+        "w-[240px] min-h-[110px] rounded-md border-2 shadow-md px-3 py-2 flex flex-col gap-1 cursor-pointer transition-transform relative",
         style.bg,
         style.border,
         style.text,
@@ -69,11 +84,29 @@ export default function C4NodeView({ data }: NodeProps<C4NodeData>) {
       <span className="text-[10px] uppercase tracking-wide opacity-70">
         {style.badge}
       </span>
-      <span className="font-semibold leading-tight text-sm">{data.name}</span>
+      <span className="font-semibold leading-tight text-sm pr-5">{data.name}</span>
       {data.technology && (
         <span className="text-[11px] italic opacity-80">[{data.technology}]</span>
       )}
       <span className="text-[11px] opacity-90 line-clamp-3">{data.description}</span>
+
+      {data.expandable && (
+        <button
+          type="button"
+          title={`Expand ${data.name}`}
+          className="nodrag nopan absolute bottom-1.5 right-1.5 w-6 h-6 rounded-full bg-black/25 hover:bg-black/40 flex items-center justify-center text-white text-xs leading-none"
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onExpand?.();
+          }}
+        >
+          {data.expandLoading ? (
+            <span className="animate-spin inline-block w-3 h-3 border-2 border-white/40 border-t-white rounded-full" />
+          ) : (
+            "⌄"
+          )}
+        </button>
+      )}
     </div>
   );
 }

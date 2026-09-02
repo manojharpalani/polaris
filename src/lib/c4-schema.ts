@@ -43,6 +43,8 @@ export const C4_NODE_KINDS = [
   "externalSystem",
   "container",
   "datastore",
+  "component",
+  "class",
 ] as const;
 
 export const C4NodeKindSchema = z.enum(C4_NODE_KINDS);
@@ -89,6 +91,17 @@ export const C4GraphSchema = z.object({
 });
 export type C4Graph = z.infer<typeof C4GraphSchema>;
 
+// Level 3 (Component) is generated lazily, scoped to one container, when the
+// user expands it. Level 4 (Code) is generated lazily too, scoped to one
+// component. Both reuse C4GraphSchema as their shape.
+export const ComponentGraphSchema = C4GraphSchema.describe(
+  "Level 3: the components inside one container (classes/modules grouped by responsibility) and how they relate. May reuse person/externalSystem/container node ids to show entry points and outbound calls.",
+);
+
+export const CodeGraphSchema = C4GraphSchema.describe(
+  "Level 4: the key classes/interfaces inside one component and their relationships (composition, inheritance, dependency). Keep it to the handful of elements that matter for understanding the component, not a full class dump.",
+);
+
 export const C4ModelSchema = z.object({
   systemName: z.string(),
   systemDescription: z.string(),
@@ -99,9 +112,32 @@ export const C4ModelSchema = z.object({
     "Level 2: the major deployable/runnable pieces inside the system (services, UIs, queues, datastores) and how they relate. May reuse person/externalSystem node ids from context to show entry points.",
   ),
 });
-export type C4Model = z.infer<typeof C4ModelSchema>;
+export type C4Model = z.infer<typeof C4ModelSchema> & {
+  // Lazily populated as the user expands containers/components. Keyed by the
+  // id of the container (-> its components) or component (-> its classes).
+  componentsByContainer: Record<string, C4Graph>;
+  codeByComponent: Record<string, C4Graph>;
+};
 
-export type DiagramLevel = "context" | "container";
+// ---- Navigation: where in the C4 hierarchy the viewer currently is ----
+
+export type DrillStep =
+  | { level: "context" }
+  | { level: "container" }
+  | { level: "component"; containerId: string }
+  | { level: "code"; componentId: string };
+
+export type DiagramLevel = DrillStep["level"];
+
+export const EXPANDABLE_KIND_BY_LEVEL: Record<DiagramLevel, C4NodeKind | null> =
+  {
+    // A node of this kind, when clicked-to-expand at this level, drills into
+    // the next level down. null = nothing expands further from here yet.
+    context: "softwareSystem",
+    container: "container",
+    component: "component",
+    code: null,
+  };
 
 export type SelectedItem =
   | { kind: "node"; id: string }

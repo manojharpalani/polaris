@@ -7,6 +7,8 @@ type Props = {
   selected: SelectedItem;
   node?: C4Node;
   edge?: C4Edge;
+  expandable?: boolean;
+  onExpandNode?: () => void;
   onUpdateNode: (patch: Partial<C4Node>) => void;
   onDeleteNode: () => void;
   onUpdateEdge: (patch: Partial<C4Edge>) => void;
@@ -41,6 +43,8 @@ export default function Inspector({
   selected,
   node,
   edge,
+  expandable,
+  onExpandNode,
   onUpdateNode,
   onDeleteNode,
   onUpdateEdge,
@@ -117,6 +121,15 @@ export default function Inspector({
               ))}
             </ul>
           </Field>
+        )}
+
+        {expandable && (
+          <button
+            onClick={onExpandNode}
+            className="text-sm text-white bg-teal-700 hover:bg-teal-800 rounded-md px-3 py-1.5 flex items-center justify-center gap-1.5"
+          >
+            Expand into next level ⌄
+          </button>
         )}
 
         <button

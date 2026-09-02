@@ -38,3 +38,31 @@ export function layoutGraph(
 }
 
 export const NODE_DIMENSIONS = { width: NODE_WIDTH, height: NODE_HEIGHT };
+
+const BOUNDARY_PADDING = 60;
+
+/**
+ * Bounding box (in flow coordinates) around a subset of already-laid-out
+ * nodes, padded out — used to draw the dashed "parent boundary" rectangle
+ * when a level has been drilled into. Returns null if none of the given
+ * node ids are present (nothing to draw a boundary around).
+ */
+export function boundingBox(
+  nodes: Node[],
+  nodeIds: string[],
+): { x: number; y: number; width: number; height: number } | null {
+  const included = nodes.filter((n) => nodeIds.includes(n.id));
+  if (included.length === 0) return null;
+
+  const minX = Math.min(...included.map((n) => n.position.x));
+  const minY = Math.min(...included.map((n) => n.position.y));
+  const maxX = Math.max(...included.map((n) => n.position.x + NODE_WIDTH));
+  const maxY = Math.max(...included.map((n) => n.position.y + NODE_HEIGHT));
+
+  return {
+    x: minX - BOUNDARY_PADDING,
+    y: minY - BOUNDARY_PADDING / 2,
+    width: maxX - minX + BOUNDARY_PADDING * 2,
+    height: maxY - minY + BOUNDARY_PADDING,
+  };
+}

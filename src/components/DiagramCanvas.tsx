@@ -134,7 +134,7 @@ export default function DiagramCanvas({
       fn(viewport, { backgroundColor: "#0f172a", pixelRatio: 2 }).then((dataUrl) => {
         const a = document.createElement("a");
         a.href = dataUrl;
-        a.download = `north-star-${level}.${format}`;
+        a.download = `polaris-${level}.${format}`;
         a.click();
       });
     },

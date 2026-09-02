@@ -1,4 +1,4 @@
-# North Star
+# Polaris
 
 Turn a system's functional and non-functional requirements into an interactive,
 navigable C4 architecture diagram (Context + Container levels) — with every

@@ -200,7 +200,7 @@ export default function RequirementsForm({
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl mx-auto flex flex-col gap-6 py-10 px-4">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">North Star</h1>
+        <h1 className="text-2xl font-semibold text-slate-900">Polaris</h1>
         <p className="text-slate-500 text-sm mt-1">
           Describe what you&apos;re building. You&apos;ll get back an interactive C4
           architecture — Context and Container level — with every choice tied to a

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "North Star — AI-generated architecture",
+  title: "Polaris — AI-generated architecture",
   description:
     "Turn functional and non-functional requirements into an interactive C4 north-star architecture.",
 };

@@ -153,7 +153,7 @@ export default function Home() {
     <div className="h-screen w-screen flex flex-col bg-slate-100">
       <header className="h-14 shrink-0 flex items-center justify-between px-4 border-b border-slate-200 bg-white">
         <div className="flex items-center gap-4 min-w-0">
-          <span className="font-semibold text-slate-900 shrink-0">North Star</span>
+          <span className="font-semibold text-slate-900 shrink-0">Polaris</span>
           <span className="text-slate-300">/</span>
           <span className="text-slate-600 text-sm truncate">{model.systemName}</span>
         </div>

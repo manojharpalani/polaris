@@ -111,7 +111,7 @@ function StringListEditor({
       ))}
       <div className="flex gap-2">
         <input
-          className={`${inputCls} ${invalid ? "!border-rose-500/60" : ""}`}
+          className={`${inputCls} flex-1 min-w-0 ${invalid ? "!border-rose-500/60" : ""}`}
           placeholder={placeholder}
           value={draft}
           onChange={(e) => onDraftChange(e.target.value)}
@@ -176,9 +176,9 @@ function NfrEditor({
           </button>
         </div>
       ))}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <select
-          className={`${inputCls} w-auto shrink-0`}
+          className={`${inputCls} w-full sm:w-72 shrink-0`}
           value={category}
           onChange={(e) => onCategoryChange(e.target.value as NfrCategory)}
         >
@@ -189,7 +189,7 @@ function NfrEditor({
           ))}
         </select>
         <input
-          className={inputCls}
+          className={`${inputCls} flex-1 min-w-[200px]`}
           placeholder="e.g. 'must handle 50k concurrent users at peak'"
           value={detail}
           onChange={(e) => onDetailChange(e.target.value)}
@@ -374,7 +374,7 @@ export default function RequirementsForm({
 
         <form
           onSubmit={handleSubmit}
-          className="max-w-3xl w-full mx-auto flex flex-col gap-6"
+          className="max-w-3xl w-full flex flex-col gap-6"
         >
           <div className="mt-20">
             <h1 className="hud-label text-cyan-400/80">

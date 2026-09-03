@@ -19,7 +19,7 @@ const NFR_LABELS: Record<NfrCategory, string> = {
   other: "Other",
 };
 
-const SAMPLE_MISSION: RequirementInput = {
+const SAMPLE_MISSION_CONSUMER: RequirementInput = {
   systemName: "Nearloop",
   description:
     "A mobile and web commerce platform that connects neighbors to buy, sell, and share goods and services close to home — helping neighborhoods build resilient, self-sustaining local economies.",
@@ -68,6 +68,64 @@ const SAMPLE_MISSION: RequirementInput = {
     "Ship native iOS and Android apps plus a responsive web app from one shared backend",
     "Integrate with a third-party payments processor rather than building custom payment rails",
     "Initial launch limited to a single country for regulatory simplicity",
+  ],
+};
+
+// A second, deliberately more "boring" sample — internal enterprise software
+// rather than a consumer app. Same handful-of-containers scale as the
+// consumer sample (this is meant to demo well, not sprawl), but it exercises
+// concepts the consumer sample doesn't: SSO/SAML, role-based approval
+// workflows, audit trails for compliance, integrating with an existing
+// ERP/payroll system of record, and a small-team cost constraint that should
+// visibly discourage an over-engineered architecture.
+const SAMPLE_MISSION_ENTERPRISE: RequirementInput = {
+  systemName: "Meridian",
+  description:
+    "An internal expense management and reimbursement platform for a multi-thousand-employee company, integrating with corporate SSO, the existing ERP/payroll system, and corporate card transaction feeds.",
+  actors: [
+    "Employee",
+    "Manager (approver)",
+    "Finance operations analyst",
+    "IT / security admin",
+  ],
+  functionalRequirements: [
+    "Employees can submit expense reports with itemized line items and receipt photo uploads",
+    "Reports route automatically to the employee's manager for approval, with an additional approval step above a configurable dollar threshold",
+    "Finance ops can review approved reports, apply GL codes, and export a reimbursement batch to the payroll system",
+    "Employees can see real-time status of a submitted report (pending, approved, rejected, paid)",
+    "IT/security admins can view an audit trail of every approval, edit, and status change for compliance reporting",
+    "Corporate card transactions are imported automatically and pre-matched to expense line items where possible",
+  ],
+  nonFunctionalRequirements: [
+    {
+      category: "security_compliance",
+      detail:
+        "All users authenticate via the company's existing Okta SSO (SAML 2.0); no separate Meridian passwords. SOX-compliant audit log retained for 7 years",
+    },
+    {
+      category: "availability",
+      detail:
+        "99.9% uptime during business hours across US and EU offices; a payroll-system outage should not block new report submission",
+    },
+    {
+      category: "latency",
+      detail:
+        "Report list and status views should load in under 1.5s for a manager with up to 200 direct/indirect reports",
+    },
+    {
+      category: "cost",
+      detail:
+        "Infrastructure should scale to 8,000 employees without requiring a dedicated on-call SRE team",
+    },
+    {
+      category: "team_constraints",
+      detail: "Built and operated by a 4-person internal platform team",
+    },
+  ],
+  constraints: [
+    "Must integrate with the company's existing Okta tenant for authentication and NetSuite for payroll/GL export",
+    "Must not store raw corporate card numbers — only tokenized references from the card processor",
+    "Single AWS region at launch (us-east-1), with EU data residency to follow in a later phase",
   ],
 };
 
@@ -270,16 +328,16 @@ export default function RequirementsForm({
     description.trim().length > 0 &&
     hasFunctionalReq;
 
-  function loadSample() {
-    setSystemName(SAMPLE_MISSION.systemName);
-    setDescription(SAMPLE_MISSION.description);
-    setActors(SAMPLE_MISSION.actors);
+  function loadSample(mission: RequirementInput) {
+    setSystemName(mission.systemName);
+    setDescription(mission.description);
+    setActors(mission.actors);
     setActorsDraft("");
-    setFunctionalRequirements(SAMPLE_MISSION.functionalRequirements);
+    setFunctionalRequirements(mission.functionalRequirements);
     setFrDraft("");
-    setNonFunctionalRequirements(SAMPLE_MISSION.nonFunctionalRequirements);
+    setNonFunctionalRequirements(mission.nonFunctionalRequirements);
     setNfrDetail("");
-    setConstraints(SAMPLE_MISSION.constraints);
+    setConstraints(mission.constraints);
     setConstraintsDraft("");
     setFormErrors([]);
   }
@@ -385,17 +443,25 @@ export default function RequirementsForm({
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <button
               type="button"
-              onClick={loadSample}
+              onClick={() => loadSample(SAMPLE_MISSION_CONSUMER)}
               className="hud-label text-cyan-300/90 border border-cyan-400/25 rounded-md px-3 py-2 hover:bg-cyan-500/10 hover:border-cyan-400/40 transition-colors"
             >
-              ⟡ Load sample mission
+              ⟡ Load consumer sample
+            </button>
+            <button
+              type="button"
+              onClick={() => loadSample(SAMPLE_MISSION_ENTERPRISE)}
+              className="hud-label text-cyan-300/90 border border-cyan-400/25 rounded-md px-3 py-2 hover:bg-cyan-500/10 hover:border-cyan-400/40 transition-colors"
+            >
+              ⟡ Load enterprise sample
             </button>
             <span className="text-xs text-slate-600">
-              Prefills a hyperlocal-commerce example so you can see the engine
-              run end to end.
+              Consumer: a hyperlocal-commerce marketplace. Enterprise: an
+              internal expense platform with SSO, approvals, and audit —
+              either way you can see the engine run end to end.
             </span>
           </div>
 

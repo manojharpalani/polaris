@@ -158,10 +158,10 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
               Component, and Code — that&apos;s interactive, editable, and traceable back to the
               requirement that drove every decision.
             </p>
-            <div className="flex items-center gap-4 pt-2">
+            <div className="flex flex-col gap-3 pt-2">
               <button
                 onClick={onEnter}
-                className="rounded-lg font-semibold py-3.5 px-6 tracking-wide bg-gradient-to-r from-cyan-500 to-sky-500 text-slate-950 hover:from-cyan-400 hover:to-sky-400 shadow-[0_0_28px_-6px_rgba(34,211,238,0.65)] transition-all"
+                className="w-full rounded-lg font-semibold py-3.5 px-6 tracking-wide bg-gradient-to-r from-cyan-500 to-sky-500 text-slate-950 hover:from-cyan-400 hover:to-sky-400 shadow-[0_0_28px_-6px_rgba(34,211,238,0.65)] transition-all"
               >
                 Generate your architecture ▸
               </button>

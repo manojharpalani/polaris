@@ -372,10 +372,7 @@ export default function RequirementsForm({
           </div>
         </header>
 
-        <form
-          onSubmit={handleSubmit}
-          className="max-w-3xl w-full flex flex-col gap-6"
-        >
+        <form onSubmit={handleSubmit} className="w-full flex flex-col gap-6">
           <div className="mt-20">
             <h1 className="hud-label text-cyan-400/80">
               North-star architecture synthesis engine

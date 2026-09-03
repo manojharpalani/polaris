@@ -144,7 +144,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
 
         <section className="grid md:grid-cols-2 gap-14 items-center pt-6">
           <div className="flex flex-col gap-6">
-            <span className="hud-label text-cyan-400/80">North-star architecture engine</span>
+            <span className="hud-label text-cyan-400/80">North-star architecture synthesis engine</span>
             <h1 className="text-4xl sm:text-5xl font-semibold text-white leading-[1.08] tracking-tight">
               Every engineering org needs a north star.
               <br />

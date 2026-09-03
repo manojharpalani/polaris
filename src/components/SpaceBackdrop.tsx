@@ -122,7 +122,7 @@ export default function SpaceBackdrop({
             <div className="spike d2" />
           </div>
           <div className="core" />
-          <div className="label">POLARIS · THE NORTH STAR</div>
+          <div className="label">THE NORTH STAR</div>
         </div>
       )}
     </div>

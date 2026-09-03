@@ -204,13 +204,19 @@ export function modelToStructurizrDsl(model: C4Model): string {
     lines.push(`${INDENT.repeat(2)}}`);
   }
 
+  function pushElementStyle(tag: string, props: string[]) {
+    lines.push(`${INDENT.repeat(3)}element "${tag}" {`);
+    for (const p of props) lines.push(`${INDENT.repeat(4)}${p}`);
+    lines.push(`${INDENT.repeat(3)}}`);
+  }
+
   lines.push(`${INDENT.repeat(2)}styles {`);
-  lines.push(`${INDENT.repeat(3)}element "Person" { shape Person; background #08427b; color #ffffff }`);
-  lines.push(`${INDENT.repeat(3)}element "Software System" { background #1168bd; color #ffffff }`);
-  lines.push(`${INDENT.repeat(3)}element "External" { background #999999; color #ffffff }`);
-  lines.push(`${INDENT.repeat(3)}element "Container" { background #438dd5; color #ffffff }`);
-  lines.push(`${INDENT.repeat(3)}element "Database" { shape Cylinder }`);
-  lines.push(`${INDENT.repeat(3)}element "Component" { background #85bbf0; color #000000 }`);
+  pushElementStyle("Person", ["shape Person", "background #08427b", "color #ffffff"]);
+  pushElementStyle("Software System", ["background #1168bd", "color #ffffff"]);
+  pushElementStyle("External", ["background #999999", "color #ffffff"]);
+  pushElementStyle("Container", ["background #438dd5", "color #ffffff"]);
+  pushElementStyle("Database", ["shape Cylinder"]);
+  pushElementStyle("Component", ["background #85bbf0", "color #000000"]);
   lines.push(`${INDENT.repeat(2)}}`);
   lines.push(`${INDENT}}`); // close views
   lines.push("}"); // close workspace

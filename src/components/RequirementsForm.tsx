@@ -40,7 +40,8 @@ const SAMPLE_MISSION: RequirementInput = {
   nonFunctionalRequirements: [
     {
       category: "scale",
-      detail: "Support 500 active neighborhoods at launch, scaling to 10,000 within two years",
+      detail:
+        "Support 500 active neighborhoods at launch, scaling to 10,000 within two years",
     },
     {
       category: "availability",
@@ -49,7 +50,8 @@ const SAMPLE_MISSION: RequirementInput = {
     },
     {
       category: "latency",
-      detail: "Nearby-listings search should return results in under 300ms for a 2-mile radius",
+      detail:
+        "Nearby-listings search should return results in under 300ms for a 2-mile radius",
     },
     {
       category: "security_compliance",
@@ -211,7 +213,15 @@ function NfrEditor({
   );
 }
 
-function SectionLabel({ n, title, hint }: { n: string; title: string; hint?: string }) {
+function SectionLabel({
+  n,
+  title,
+  hint,
+}: {
+  n: string;
+  title: string;
+  hint?: string;
+}) {
   return (
     <div className="flex items-baseline gap-2 mb-3">
       <span className="hud-label text-cyan-400/70">{n}</span>
@@ -238,22 +248,27 @@ export default function RequirementsForm({
   const [description, setDescription] = useState(initial?.description ?? "");
   const [actors, setActors] = useState<string[]>(initial?.actors ?? []);
   const [actorsDraft, setActorsDraft] = useState("");
-  const [functionalRequirements, setFunctionalRequirements] = useState<string[]>(
-    initial?.functionalRequirements ?? [],
-  );
+  const [functionalRequirements, setFunctionalRequirements] = useState<
+    string[]
+  >(initial?.functionalRequirements ?? []);
   const [frDraft, setFrDraft] = useState("");
   const [nonFunctionalRequirements, setNonFunctionalRequirements] = useState<
     NonFunctionalRequirement[]
   >(initial?.nonFunctionalRequirements ?? []);
   const [nfrCategory, setNfrCategory] = useState<NfrCategory>("scale");
   const [nfrDetail, setNfrDetail] = useState("");
-  const [constraints, setConstraints] = useState<string[]>(initial?.constraints ?? []);
+  const [constraints, setConstraints] = useState<string[]>(
+    initial?.constraints ?? [],
+  );
   const [constraintsDraft, setConstraintsDraft] = useState("");
   const [formErrors, setFormErrors] = useState<string[]>([]);
 
-  const hasFunctionalReq = functionalRequirements.length > 0 || frDraft.trim().length > 0;
+  const hasFunctionalReq =
+    functionalRequirements.length > 0 || frDraft.trim().length > 0;
   const looksReady =
-    systemName.trim().length > 0 && description.trim().length > 0 && hasFunctionalReq;
+    systemName.trim().length > 0 &&
+    description.trim().length > 0 &&
+    hasFunctionalReq;
 
   function loadSample() {
     setSystemName(SAMPLE_MISSION.systemName);
@@ -276,12 +291,17 @@ export default function RequirementsForm({
     // Fold in anything the operator typed but didn't explicitly commit with
     // "+ Add" or Enter — the button should never be a dead end just because
     // someone forgot that extra click.
-    const finalActors = actorsDraft.trim() ? [...actors, actorsDraft.trim()] : actors;
+    const finalActors = actorsDraft.trim()
+      ? [...actors, actorsDraft.trim()]
+      : actors;
     const finalFunctionalRequirements = frDraft.trim()
       ? [...functionalRequirements, frDraft.trim()]
       : functionalRequirements;
     const finalNfr = nfrDetail.trim()
-      ? [...nonFunctionalRequirements, { category: nfrCategory, detail: nfrDetail.trim() }]
+      ? [
+          ...nonFunctionalRequirements,
+          { category: nfrCategory, detail: nfrDetail.trim() },
+        ]
       : nonFunctionalRequirements;
     const finalConstraints = constraintsDraft.trim()
       ? [...constraints, constraintsDraft.trim()]
@@ -289,7 +309,8 @@ export default function RequirementsForm({
 
     const errors: string[] = [];
     if (!systemName.trim()) errors.push("System name is required.");
-    if (!description.trim()) errors.push("Give a one- or two-sentence description.");
+    if (!description.trim())
+      errors.push("Give a one- or two-sentence description.");
     if (finalFunctionalRequirements.length === 0)
       errors.push("Add at least one functional requirement.");
 
@@ -321,165 +342,187 @@ export default function RequirementsForm({
   return (
     <div className="polaris-scene">
       <SpaceBackdrop />
-      <form
-        onSubmit={handleSubmit}
-        className="relative z-10 max-w-3xl mx-auto flex flex-col gap-6 py-14 px-4"
-      >
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <button
-              type="button"
-              onClick={onHome}
-              disabled={!onHome}
-              className={`flex items-center gap-2.5 ${onHome ? "hover:opacity-80 transition-opacity" : ""}`}
+      <div className="relative z-10 max-w-6xl mx-auto px-6 py-10 flex flex-col gap-10">
+        <header className="flex items-center justify-between gap-4 flex-wrap">
+          <button
+            type="button"
+            onClick={onHome}
+            disabled={!onHome}
+            className={`flex items-center gap-2 ${onHome ? "hover:opacity-80 transition-opacity" : ""}`}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="w-5 h-5 text-cyan-400"
+              fill="none"
             >
-              <svg viewBox="0 0 24 24" className="w-7 h-7 text-cyan-400" fill="none">
-                <path
-                  d="M12 2 L14.2 9.8 L22 12 L14.2 14.2 L12 22 L9.8 14.2 L2 12 L9.8 9.8 Z"
-                  fill="currentColor"
-                  fillOpacity="0.9"
-                />
-              </svg>
-              <h1 className="text-3xl font-semibold text-white tracking-tight">Polaris</h1>
-            </button>
-            <p className="hud-label text-slate-500 mt-2">
-              North-star architecture synthesis engine
-            </p>
-          </div>
+              <path
+                d="M12 2 L14.2 9.8 L22 12 L14.2 14.2 L12 22 L9.8 14.2 L2 12 L9.8 9.8 Z"
+                fill="currentColor"
+                fillOpacity="0.9"
+              />
+            </svg>
+            <span className="font-semibold text-white tracking-tight">
+              Polaris
+            </span>
+          </button>
 
-          <div className="flex items-center gap-2 hud-label text-emerald-400/90 pt-1">
+          <div className="flex items-center gap-2 hud-label text-emerald-400/90">
             <span className="status-dot inline-block w-1.5 h-1.5 rounded-full bg-emerald-400" />
             engine ready
           </div>
-        </div>
+        </header>
 
-        <p className="text-slate-400 text-sm leading-relaxed max-w-xl mt-16">
-          Brief the engine on what you&apos;re building — functional and non-functional
-          requirements — and get back an interactive, editable C4 architecture: Context and
-          Container level to start, with every decision traceable to a requirement.
-        </p>
+        <form
+          onSubmit={handleSubmit}
+          className="max-w-3xl w-full mx-auto flex flex-col gap-6"
+        >
+          <div className="mt-20">
+            <h1 className="hud-label text-cyan-400/80">
+              North-star architecture synthesis engine
+            </h1>
+            <p className="text-slate-400 text-sm leading-relaxed max-w-xl mt-3">
+              Brief the engine on what you&apos;re building — functional and
+              non-functional requirements — and get back an interactive,
+              editable C4 architecture: Context and Container level to start,
+              with every decision traceable to a requirement.
+            </p>
+          </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={loadSample}
-            className="hud-label text-cyan-300/90 border border-cyan-400/25 rounded-md px-3 py-2 hover:bg-cyan-500/10 hover:border-cyan-400/40 transition-colors"
-          >
-            ⟡ Load sample mission
-          </button>
-          <span className="text-xs text-slate-600">
-            Prefills a hyperlocal-commerce example so you can see the engine run end to end.
-          </span>
-        </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={loadSample}
+              className="hud-label text-cyan-300/90 border border-cyan-400/25 rounded-md px-3 py-2 hover:bg-cyan-500/10 hover:border-cyan-400/40 transition-colors"
+            >
+              ⟡ Load sample mission
+            </button>
+            <span className="text-xs text-slate-600">
+              Prefills a hyperlocal-commerce example so you can see the engine
+              run end to end.
+            </span>
+          </div>
 
-        <div className="hud-panel px-5 py-5">
-          <SectionLabel n="01" title="System identity" />
-          <div className="flex flex-col gap-1.5">
-            <input
+          <div className="hud-panel px-5 py-5">
+            <SectionLabel n="01" title="System identity" />
+            <div className="flex flex-col gap-1.5">
+              <input
+                className={inputCls}
+                value={systemName}
+                onChange={(e) => setSystemName(e.target.value)}
+                placeholder="e.g. Payments Platform 2027"
+              />
+            </div>
+          </div>
+
+          <div className="hud-panel px-5 py-5">
+            <SectionLabel
+              n="02"
+              title="Mission brief"
+              hint="what is it, in a sentence or two?"
+            />
+            <textarea
               className={inputCls}
-              value={systemName}
-              onChange={(e) => setSystemName(e.target.value)}
-              placeholder="e.g. Payments Platform 2027"
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="e.g. A platform that lets merchants accept and reconcile payments across multiple providers."
             />
           </div>
-        </div>
 
-        <div className="hud-panel px-5 py-5">
-          <SectionLabel n="02" title="Mission brief" hint="what is it, in a sentence or two?" />
-          <textarea
-            className={inputCls}
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="e.g. A platform that lets merchants accept and reconcile payments across multiple providers."
-          />
-        </div>
-
-        <div className="hud-panel px-5 py-5">
-          <SectionLabel n="03" title="Operators" hint="actors / users — optional" />
-          <StringListEditor
-            items={actors}
-            onChange={setActors}
-            draft={actorsDraft}
-            onDraftChange={setActorsDraft}
-            placeholder="e.g. Merchant, Support agent, Finance ops"
-          />
-        </div>
-
-        <div className="hud-panel px-5 py-5">
-          <SectionLabel n="04" title="Functional requirements" hint="required — add at least one" />
-          <StringListEditor
-            items={functionalRequirements}
-            onChange={setFunctionalRequirements}
-            draft={frDraft}
-            onDraftChange={setFrDraft}
-            placeholder="e.g. Merchants can accept card and bank payments"
-            invalid={formErrors.length > 0 && !hasFunctionalReq}
-          />
-        </div>
-
-        <div className="hud-panel px-5 py-5">
-          <SectionLabel
-            n="05"
-            title="Non-functional parameters"
-            hint="optional — this is what shapes the architecture"
-          />
-          <NfrEditor
-            items={nonFunctionalRequirements}
-            onChange={setNonFunctionalRequirements}
-            category={nfrCategory}
-            onCategoryChange={setNfrCategory}
-            detail={nfrDetail}
-            onDetailChange={setNfrDetail}
-          />
-        </div>
-
-        <div className="hud-panel px-5 py-5">
-          <SectionLabel n="06" title="Constraints" hint="optional" />
-          <StringListEditor
-            items={constraints}
-            onChange={setConstraints}
-            draft={constraintsDraft}
-            onDraftChange={setConstraintsDraft}
-            placeholder="e.g. Must run on AWS, must integrate with legacy ledger system"
-          />
-        </div>
-
-        {formErrors.length > 0 && (
-          <div className="text-sm text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-md px-3.5 py-2.5 flex flex-col gap-1">
-            {formErrors.map((msg, i) => (
-              <span key={i}>{msg}</span>
-            ))}
+          <div className="hud-panel px-5 py-5">
+            <SectionLabel
+              n="03"
+              title="Operators"
+              hint="actors / users — optional"
+            />
+            <StringListEditor
+              items={actors}
+              onChange={setActors}
+              draft={actorsDraft}
+              onDraftChange={setActorsDraft}
+              placeholder="e.g. Merchant, Support agent, Finance ops"
+            />
           </div>
-        )}
 
-        {error && (
-          <div className="text-sm text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-md px-3.5 py-2.5">
-            {error}
+          <div className="hud-panel px-5 py-5">
+            <SectionLabel
+              n="04"
+              title="Functional requirements"
+              hint="required — add at least one"
+            />
+            <StringListEditor
+              items={functionalRequirements}
+              onChange={setFunctionalRequirements}
+              draft={frDraft}
+              onDraftChange={setFrDraft}
+              placeholder="e.g. Merchants can accept card and bank payments"
+              invalid={formErrors.length > 0 && !hasFunctionalReq}
+            />
           </div>
-        )}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className={`relative rounded-lg font-semibold py-3.5 tracking-wide transition-all ${
-            submitting
-              ? "bg-slate-800 text-slate-400 cursor-wait"
-              : looksReady
-                ? "bg-gradient-to-r from-cyan-500 to-sky-500 text-slate-950 hover:from-cyan-400 hover:to-sky-400 shadow-[0_0_28px_-6px_rgba(34,211,238,0.65)]"
-                : "bg-slate-800/80 text-slate-300 border border-cyan-400/20 hover:bg-slate-800"
-          }`}
-        >
-          {submitting ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="w-3.5 h-3.5 rounded-full border-2 border-slate-500 border-t-slate-200 animate-spin" />
-              Synthesizing architecture…
-            </span>
-          ) : (
-            "Generate north-star architecture ▸"
+          <div className="hud-panel px-5 py-5">
+            <SectionLabel
+              n="05"
+              title="Non-functional parameters"
+              hint="optional — this is what shapes the architecture"
+            />
+            <NfrEditor
+              items={nonFunctionalRequirements}
+              onChange={setNonFunctionalRequirements}
+              category={nfrCategory}
+              onCategoryChange={setNfrCategory}
+              detail={nfrDetail}
+              onDetailChange={setNfrDetail}
+            />
+          </div>
+
+          <div className="hud-panel px-5 py-5">
+            <SectionLabel n="06" title="Constraints" hint="optional" />
+            <StringListEditor
+              items={constraints}
+              onChange={setConstraints}
+              draft={constraintsDraft}
+              onDraftChange={setConstraintsDraft}
+              placeholder="e.g. Must run on AWS, must integrate with legacy ledger system"
+            />
+          </div>
+
+          {formErrors.length > 0 && (
+            <div className="text-sm text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-md px-3.5 py-2.5 flex flex-col gap-1">
+              {formErrors.map((msg, i) => (
+                <span key={i}>{msg}</span>
+              ))}
+            </div>
           )}
-        </button>
-      </form>
+
+          {error && (
+            <div className="text-sm text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-md px-3.5 py-2.5">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className={`relative rounded-lg font-semibold py-3.5 tracking-wide transition-all ${
+              submitting
+                ? "bg-slate-800 text-slate-400 cursor-wait"
+                : looksReady
+                  ? "bg-gradient-to-r from-cyan-500 to-sky-500 text-slate-950 hover:from-cyan-400 hover:to-sky-400 shadow-[0_0_28px_-6px_rgba(34,211,238,0.65)]"
+                  : "bg-slate-800/80 text-slate-300 border border-cyan-400/20 hover:bg-slate-800"
+            }`}
+          >
+            {submitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-3.5 h-3.5 rounded-full border-2 border-slate-500 border-t-slate-200 animate-spin" />
+                Synthesizing architecture…
+              </span>
+            ) : (
+              "Generate north-star architecture ▸"
+            )}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

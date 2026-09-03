@@ -374,7 +374,7 @@ export default function Home() {
             className="flex items-center gap-2 min-w-0 shrink-0 hover:opacity-80 transition-opacity"
             title="Back to home"
           >
-            <svg viewBox="0 0 24 24" className="w-4 h-4 text-cyan-400 shrink-0" fill="none">
+            <svg viewBox="0 0 24 24" className="w-5 h-5 text-cyan-400 shrink-0" fill="none">
               <path
                 d="M12 2 L14.2 9.8 L22 12 L14.2 14.2 L12 22 L9.8 14.2 L2 12 L9.8 9.8 Z"
                 fill="currentColor"

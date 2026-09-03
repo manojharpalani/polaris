@@ -76,7 +76,20 @@ function StarLayer({ stars, className }: { stars: Star[]; className: string }) {
   );
 }
 
-export default function SpaceBackdrop() {
+export default function SpaceBackdrop({
+  showHeroStar = true,
+}: {
+  /**
+   * The full glowing Polaris mark with diffraction spikes is the "jaw
+   * dropping" moment for Landing and the intake form, where it has open
+   * sky above an in-flow (non-opaque-barred) header to bloom into. The
+   * working canvas has a full-width opaque toolbar pinned at the very
+   * top, which would slice the star in half rather than frame it — so
+   * that screen keeps the ambient nebula + starfield for continuity but
+   * omits the hero mark itself.
+   */
+  showHeroStar?: boolean;
+}) {
   return (
     <div className="space-backdrop" aria-hidden="true">
       <StarLayer stars={DUST_STARS} className="star-layer layer-a" />
@@ -99,17 +112,19 @@ export default function SpaceBackdrop() {
       <span className="shooting-star" style={{ top: "16%", left: "6%", animationDelay: "1.5s" }} />
       <span className="shooting-star" style={{ top: "34%", left: "52%", animationDelay: "6.5s" }} />
 
-      <div className="polaris-hero-star">
-        <div className="bloom" />
-        <div className="spikes">
-          <div className="spike h" />
-          <div className="spike v" />
-          <div className="spike d1" />
-          <div className="spike d2" />
+      {showHeroStar && (
+        <div className="polaris-hero-star">
+          <div className="bloom" />
+          <div className="spikes">
+            <div className="spike h" />
+            <div className="spike v" />
+            <div className="spike d1" />
+            <div className="spike d2" />
+          </div>
+          <div className="core" />
+          <div className="label">POLARIS · THE NORTH STAR</div>
         </div>
-        <div className="core" />
-        <div className="label">POLARIS · THE NORTH STAR</div>
-      </div>
+      )}
     </div>
   );
 }

@@ -18,6 +18,7 @@ import Landing from "@/components/Landing";
 import RequirementsForm from "@/components/RequirementsForm";
 import DiagramCanvas, { type BoundaryInfo } from "@/components/DiagramCanvas";
 import Inspector from "@/components/Inspector";
+import SpaceBackdrop from "@/components/SpaceBackdrop";
 
 const DEFAULT_NODE_DESCRIPTIONS: Record<C4NodeKind, string> = {
   person: "Describe who this is and what they need from the system.",
@@ -362,8 +363,10 @@ export default function Home() {
     selected?.kind === "edge" ? currentGraph?.edges.find((e) => e.id === selected.id) : undefined;
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-[#050810]">
-      <header className="h-14 shrink-0 flex items-center justify-between px-4 border-b border-cyan-500/10 bg-[#080d1a]/95 backdrop-blur gap-4">
+    <div className="polaris-scene h-screen w-screen bg-[#050810]">
+      <SpaceBackdrop showHeroStar={false} />
+      <div className="relative z-10 h-full w-full flex flex-col">
+      <header className="h-14 shrink-0 flex items-center justify-between px-4 border-b border-cyan-500/10 bg-[#080d1a]/90 backdrop-blur gap-4">
         <div className="flex items-center gap-2 min-w-0 shrink-0">
           <button
             type="button"
@@ -451,7 +454,7 @@ export default function Home() {
             />
           )}
         </div>
-        <aside className="w-[340px] shrink-0 border-l border-cyan-500/10 bg-[#080d1a] overflow-y-auto">
+        <aside className="w-[340px] shrink-0 border-l border-cyan-500/10 bg-[#080d1a]/90 backdrop-blur overflow-y-auto">
           <Inspector
             key={selected ? `${selected.kind}:${selected.id}` : "none"}
             selected={selected}
@@ -470,6 +473,7 @@ export default function Home() {
             onClose={() => setSelected(null)}
           />
         </aside>
+      </div>
       </div>
     </div>
   );

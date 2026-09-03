@@ -238,7 +238,7 @@ export default function DiagramCanvas({
   );
 
   return (
-    <div ref={wrapperRef} className="w-full h-full bg-[#050810]">
+    <div ref={wrapperRef} className="w-full h-full bg-[#050810]/95">
       <ReactFlow
         nodes={nodes}
         edges={edges}

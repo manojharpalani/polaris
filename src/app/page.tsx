@@ -14,6 +14,7 @@ import type {
 } from "@/lib/c4-schema";
 import { EXPANDABLE_KIND_BY_LEVEL } from "@/lib/c4-schema";
 import { newId } from "@/lib/id";
+import Landing from "@/components/Landing";
 import RequirementsForm from "@/components/RequirementsForm";
 import DiagramCanvas, { type BoundaryInfo } from "@/components/DiagramCanvas";
 import Inspector from "@/components/Inspector";
@@ -56,6 +57,7 @@ function crumbLabel(step: DrillStep, model: C4Model): string {
 }
 
 export default function Home() {
+  const [hasEntered, setHasEntered] = useState(false);
   const [lastInput, setLastInput] = useState<RequirementInput | undefined>();
   const [model, setModel] = useState<C4Model | null>(null);
   const [drillPath, setDrillPath] = useState<DrillStep[]>([{ level: "context" }]);
@@ -323,6 +325,10 @@ export default function Home() {
   function navigateTo(index: number) {
     setDrillPath((p) => p.slice(0, index + 1));
     setSelected(null);
+  }
+
+  if (!hasEntered) {
+    return <Landing onEnter={() => setHasEntered(true)} />;
   }
 
   if (!model || editingRequirements) {

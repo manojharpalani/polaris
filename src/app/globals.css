@@ -185,6 +185,56 @@ body {
   fill: #cbd5e1;
 }
 
+@keyframes polaris-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.hero-edge {
+  stroke-dasharray: 4 6;
+  animation: polaris-flow 2.6s linear infinite;
+}
+
+@keyframes polaris-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 18px rgba(34, 211, 238, 0.95));
+  }
+}
+
+.hero-core {
+  animation: polaris-glow 3.4s ease-in-out infinite;
+}
+
+@keyframes polaris-drift {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.hero-drift {
+  animation: polaris-drift 6s ease-in-out infinite;
+}
+
+@keyframes polaris-spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.hero-spin {
+  animation: polaris-spin-slow 40s linear infinite;
+  transform-origin: center;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

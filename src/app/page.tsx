@@ -57,6 +57,40 @@ function crumbLabel(step: DrillStep, model: C4Model): string {
   }
 }
 
+/**
+ * Parses an API route's response defensively. A route we wrote will always
+ * return JSON, but the request can be intercepted before it ever reaches our
+ * code — a dev-server recompile in flight, a platform timeout, an auth wall
+ * on a deployed URL — and those typically respond with an HTML error page
+ * instead. Calling `res.json()` directly on one of those throws a raw
+ * "Unexpected token '<'... is not valid JSON" that gives the user nothing to
+ * act on, so read the body as text first and only parse it, surfacing a
+ * clear, specific error either way.
+ */
+async function parseApiResponse<T>(res: Response): Promise<T> {
+  const text = await res.text();
+  let json: unknown;
+  try {
+    json = text ? JSON.parse(text) : {};
+  } catch {
+    const snippet = text.replace(/\s+/g, " ").trim().slice(0, 140);
+    throw new Error(
+      `Server returned an unexpected response (status ${res.status}). ` +
+        (snippet
+          ? `This usually means the dev server was still rebuilding, or hit a platform-level error — try again in a moment. Response started with: "${snippet}"`
+          : "The response body was empty — try again in a moment."),
+    );
+  }
+  if (!res.ok) {
+    const message =
+      json && typeof json === "object" && "error" in json && typeof json.error === "string"
+        ? json.error
+        : `Request failed (status ${res.status})`;
+    throw new Error(message);
+  }
+  return json as T;
+}
+
 export default function Home() {
   const [hasEntered, setHasEntered] = useState(false);
   const [lastInput, setLastInput] = useState<RequirementInput | undefined>();
@@ -90,10 +124,9 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
       });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || "Generation failed");
-      }
+      const json = await parseApiResponse<Omit<C4Model, "componentsByContainer" | "codeByComponent">>(
+        res,
+      );
       setModel({ ...json, componentsByContainer: {}, codeByComponent: {} });
       setLastInput(input);
       setDrillPath([{ level: "context" }]);
@@ -276,8 +309,7 @@ export default function Home() {
             neighbors,
           }),
         });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Generation failed");
+        const json = await parseApiResponse<C4Graph>(res);
 
         setModel((prev) =>
           prev
@@ -316,8 +348,7 @@ export default function Home() {
             systemName: model.systemName,
           }),
         });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Generation failed");
+        const json = await parseApiResponse<C4Graph>(res);
 
         setModel((prev) =>
           prev ? { ...prev, codeByComponent: { ...prev.codeByComponent, [nodeId]: json } } : prev,

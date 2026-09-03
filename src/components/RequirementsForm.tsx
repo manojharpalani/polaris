@@ -353,7 +353,7 @@ export default function RequirementsForm({
           </div>
         </div>
 
-        <p className="text-slate-400 text-sm leading-relaxed max-w-xl">
+        <p className="text-slate-400 text-sm leading-relaxed max-w-xl mt-16">
           Brief the engine on what you&apos;re building — functional and non-functional
           requirements — and get back an interactive, editable C4 architecture: Context and
           Container level to start, with every decision traceable to a requirement.

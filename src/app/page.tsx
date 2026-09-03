@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   C4Edge,
   C4Graph,
@@ -70,6 +70,15 @@ export default function Home() {
   const exportRef = useRef<{ exportPng: () => void; exportSvg: () => void } | null>(null);
 
   const currentStep = drillPath[drillPath.length - 1];
+
+  // Which top-level screen is showing — used only to reset scroll position
+  // on transitions below, so e.g. clicking a CTA near the bottom of the
+  // landing page doesn't carry that scroll offset into the next screen.
+  const screen = !hasEntered ? "landing" : !model || editingRequirements ? "intake" : "diagram";
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [screen]);
 
   async function generate(input: RequirementInput) {
     setSubmitting(true);

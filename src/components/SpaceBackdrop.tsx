@@ -1,9 +1,15 @@
 /**
- * A fixed, jaw-dropping deep-space scene used behind the pre-app screens
- * (landing + requirements intake): nebula wash, two layered starfields, a
- * handful of individually-twinkling bright stars, occasional shooting
- * stars, and — the point of it — Polaris itself, glowing at the top with
+ * A deep-space scene that scrolls WITH the page (absolute, not fixed):
+ * nebula wash, two layered starfields, a handful of individually-
+ * twinkling bright stars, occasional shooting stars, and — the point of
+ * it — Polaris itself, glowing near the true top of the page with
  * photographic diffraction spikes, the literal brand mark rendered as sky.
+ *
+ * Positions are percentages of the backdrop's own box (which is sized to
+ * the full scrollable page, not the viewport), so the field covers the
+ * whole page exactly once — it doesn't stay parked over whatever content
+ * happens to be on screen as the user scrolls, and it doesn't leave a
+ * starless gap below the first screenful on a long page.
  *
  * Star positions are generated once at module load from a fixed seed, so
  * server and client render the exact same markup (no hydration mismatch,
@@ -21,50 +27,68 @@ function mulberry32(seed: number) {
   };
 }
 
-function buildShadow(rng: () => number, count: number, sizePx: number, colors: string[]) {
-  const parts: string[] = [];
-  for (let i = 0; i < count; i++) {
-    const x = (rng() * 100).toFixed(2);
-    const y = (rng() * 100).toFixed(2);
-    const color = colors[Math.floor(rng() * colors.length)];
-    parts.push(`${x}vw ${y}vh 0 ${sizePx}px ${color}`);
-  }
-  return parts.join(", ");
+type Star = { left: number; top: number; size: number; color: string };
+
+function buildStars(rng: () => number, count: number, size: number, colors: string[]): Star[] {
+  return Array.from({ length: count }, () => ({
+    left: rng() * 100,
+    top: rng() * 100,
+    size,
+    color: colors[Math.floor(rng() * colors.length)],
+  }));
 }
 
 const rngA = mulberry32(1337);
 const rngB = mulberry32(9001);
-const DUST_SHADOW = buildShadow(rngA, 220, 0, ["#ffffff", "#dbeeff", "#eaf6ff"]);
-const MID_SHADOW = buildShadow(rngB, 90, 0.6, ["#ffffff", "#cfe8ff"]);
+// Keep the top ~14% (where Polaris and the header live) a little emptier
+// so the dense dust field doesn't compete with the hero star.
+const DUST_STARS = buildStars(rngA, 130, 1, ["#ffffff", "#dbeeff", "#eaf6ff"]).filter(
+  (s) => s.top > 8,
+);
+const MID_STARS = buildStars(rngB, 55, 1.6, ["#ffffff", "#cfe8ff"]).filter((s) => s.top > 8);
 
 const rngBright = mulberry32(4242);
-const BRIGHT_STARS = Array.from({ length: 12 }, () => ({
-  left: `${(rngBright() * 100).toFixed(2)}vw`,
-  top: `${(rngBright() * 92).toFixed(2)}vh`,
+const BRIGHT_STARS = Array.from({ length: 10 }, () => ({
+  left: rngBright() * 100,
+  top: 10 + rngBright() * 85,
   size: 1.5 + rngBright() * 1.8,
   duration: 3 + rngBright() * 4,
   delay: rngBright() * 5,
 }));
 
+function StarLayer({ stars, className }: { stars: Star[]; className: string }) {
+  return (
+    <div className={className}>
+      {stars.map((s, i) => (
+        <span
+          key={i}
+          className="star-dot"
+          style={{
+            left: `${s.left}%`,
+            top: `${s.top}%`,
+            width: s.size,
+            height: s.size,
+            background: s.color,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function SpaceBackdrop() {
   return (
     <div className="space-backdrop" aria-hidden="true">
-      <div
-        className="star-field layer-a"
-        style={{ boxShadow: DUST_SHADOW }}
-      />
-      <div
-        className="star-field layer-b"
-        style={{ boxShadow: MID_SHADOW }}
-      />
+      <StarLayer stars={DUST_STARS} className="star-layer layer-a" />
+      <StarLayer stars={MID_STARS} className="star-layer layer-b" />
 
       {BRIGHT_STARS.map((s, i) => (
         <span
           key={i}
           className="bright-star"
           style={{
-            left: s.left,
-            top: s.top,
+            left: `${s.left}%`,
+            top: `${s.top}%`,
             width: s.size,
             height: s.size,
             animation: `bright-star-twinkle ${s.duration}s ease-in-out ${s.delay}s infinite`,
@@ -72,8 +96,8 @@ export default function SpaceBackdrop() {
         />
       ))}
 
-      <span className="shooting-star" style={{ top: "18vh", left: "6vw", animationDelay: "1.5s" }} />
-      <span className="shooting-star" style={{ top: "38vh", left: "52vw", animationDelay: "6.5s" }} />
+      <span className="shooting-star" style={{ top: "16%", left: "6%", animationDelay: "1.5s" }} />
+      <span className="shooting-star" style={{ top: "34%", left: "52%", animationDelay: "6.5s" }} />
 
       <div className="polaris-hero-star">
         <div className="bloom" />

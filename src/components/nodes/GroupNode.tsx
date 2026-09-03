@@ -11,6 +11,10 @@ export type GroupNodeData = {
   kindLabel: string;
   /** false only for the outermost Software System box — it's always expanded. */
   collapsible: boolean;
+  /** true while this group's first real children are still being generated
+   * (an in-flight expand-component/expand-class fetch) — suppresses the
+   * collapse/add affordances so the user can't act on it mid-fetch. */
+  loading?: boolean;
   selected?: boolean;
   onToggleCollapse?: () => void;
   onAddChild?: (kind: C4NodeKind) => void;
@@ -46,7 +50,13 @@ export default function GroupNode({ data }: NodeProps<GroupNodeData>) {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
+          {data.loading && (
+            <span className="hud-label flex items-center gap-1.5 text-cyan-300/80">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-300 animate-pulse" />
+              Generating…
+            </span>
+          )}
           {data.addableKinds?.map((a) => (
             <button
               key={a.kind}

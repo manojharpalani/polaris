@@ -30,6 +30,8 @@ export const LEAF_HEIGHT = 110;
 const GROUP_HEADER = 44;
 const GROUP_PAD = 28;
 const ANCHOR_PREFIX = "__anchor__";
+const SKELETON_PREFIX = "__skeleton__";
+const SKELETON_COUNT = 3;
 
 const KIND_LABEL: Record<C4NodeKind, string> = {
   person: "Person",
@@ -118,7 +120,11 @@ function buildTree(
   );
   containerNodes.forEach((c) => {
     const hasGenerated = c.kind === "container" && !!model.componentsByContainer[c.id];
-    const isGroup = hasGenerated && expandedIds.has(c.id);
+    const isExpandingNow = expandingId === c.id;
+    // Render as a boundary box the moment expansion starts (not only once
+    // real data lands) so a skeleton placeholder can appear inside it right
+    // away — see layoutComposite's skeleton-child injection below.
+    const isGroup = (hasGenerated && expandedIds.has(c.id)) || isExpandingNow;
     addEntry({
       id: c.id,
       kind: c.kind,
@@ -127,7 +133,7 @@ function buildTree(
       isGroup,
       expandable: c.kind === "container",
       hasGeneratedChildren: hasGenerated,
-      isExpanding: expandingId === c.id,
+      isExpanding: isExpandingNow,
     });
   });
 
@@ -141,7 +147,8 @@ function buildTree(
       );
       components.forEach((comp) => {
         const hasGenerated = !!model.codeByComponent[comp.id];
-        const isGroup = hasGenerated && expandedIds.has(comp.id);
+        const isExpandingNow = expandingId === comp.id;
+        const isGroup = (hasGenerated && expandedIds.has(comp.id)) || isExpandingNow;
         addEntry({
           id: comp.id,
           kind: "component",
@@ -150,7 +157,7 @@ function buildTree(
           isGroup,
           expandable: true,
           hasGeneratedChildren: hasGenerated,
-          isExpanding: expandingId === comp.id,
+          isExpanding: isExpandingNow,
         });
       });
     });
@@ -211,6 +218,23 @@ export function layoutComposite(
   const { entries, childrenOf } = buildTree(model, expandedIds, expandingId);
   const edges = collectEdges(model, entries);
 
+  // Skeleton placeholder children: a group entry that just started
+  // expanding (isExpanding) but has no real children yet gets a few
+  // synthetic "loading" leaf slots injected as its children, purely so the
+  // boundary box appears immediately with visible pulsing rows instead of
+  // popping in empty and then suddenly full once the LLM call resolves.
+  // They're plain ids (not TreeEntry-backed), tracked separately and
+  // special-cased in the node-setup/emit passes below.
+  const skeletonParentOf = new Map<string, string>(); // skeletonId -> parentId
+  for (const entry of entries.values()) {
+    if (!entry.isGroup || !entry.isExpanding) continue;
+    if ((childrenOf.get(entry.id) ?? []).length > 0) continue;
+    const ids: string[] = [];
+    for (let i = 0; i < SKELETON_COUNT; i++) ids.push(`${SKELETON_PREFIX}${entry.id}__${i}`);
+    childrenOf.set(entry.id, ids);
+    ids.forEach((id) => skeletonParentOf.set(id, entry.id));
+  }
+
   const g = new dagre.graphlib.Graph({ compound: true });
   g.setDefaultEdgeLabel(() => ({}));
   g.setGraph({ rankdir: "TB", nodesep: 60, ranksep: 90, marginx: 30, marginy: 30 });
@@ -226,6 +250,10 @@ export function layoutComposite(
       g.setNode(entry.id, { width: LEAF_WIDTH, height: LEAF_HEIGHT });
     }
     if (entry.parentId) g.setParent(entry.id, entry.parentId);
+  }
+  for (const [skelId, parentId] of skeletonParentOf) {
+    g.setNode(skelId, { width: LEAF_WIDTH, height: LEAF_HEIGHT });
+    g.setParent(skelId, parentId);
   }
 
   for (const e of edges) {
@@ -264,12 +292,40 @@ export function layoutComposite(
       });
     }
   }
+  for (const skelId of skeletonParentOf.keys()) {
+    const pos = g.node(skelId);
+    if (!pos) continue;
+    abs.set(skelId, {
+      left: pos.x - LEAF_WIDTH / 2,
+      top: pos.y - LEAF_HEIGHT / 2,
+      width: LEAF_WIDTH,
+      height: LEAF_HEIGHT,
+    });
+  }
 
   // Pass 2: emit React Flow nodes, parents before children (required for
   // parentNode/extent nesting to resolve), converting each child's absolute
   // position to be relative to its parent's box as RF expects.
   const rfNodes: Node[] = [];
   function emit(id: string) {
+    const skelParentId = skeletonParentOf.get(id);
+    if (skelParentId) {
+      const box = abs.get(id);
+      const parentBox = abs.get(skelParentId);
+      if (!box || !parentBox) return;
+      rfNodes.push({
+        id,
+        type: "skeleton",
+        position: { x: box.left - parentBox.left, y: box.top - parentBox.top },
+        parentNode: skelParentId,
+        extent: "parent",
+        draggable: false,
+        selectable: false,
+        data: {},
+      });
+      return;
+    }
+
     const entry = entries.get(id);
     const box = abs.get(id);
     if (!entry || !box) return;
@@ -285,6 +341,11 @@ export function layoutComposite(
           ? [{ kind: "class", label: "+ Class" }]
           : [];
 
+    // A group that's still loading its first real children shouldn't offer
+    // collapse/add yet — expandedIds only gains this id once the fetch
+    // resolves, so acting on it now would race the in-flight request.
+    const loading = entry.isExpanding && !entry.hasGeneratedChildren;
+
     rfNodes.push({
       id,
       type: entry.isGroup ? "group" : entry.kind,
@@ -296,10 +357,11 @@ export function layoutComposite(
         ? {
             ...entry.node,
             kindLabel: KIND_LABEL[entry.kind],
-            collapsible: entry.kind !== "softwareSystem",
+            collapsible: entry.kind !== "softwareSystem" && !loading,
+            loading,
             onToggleCollapse: () => onToggleExpand(id),
             onAddChild: (kind: C4NodeKind) => onAddChild(kind, id),
-            addableKinds,
+            addableKinds: loading ? [] : addableKinds,
           }
         : {
             ...entry.node,
@@ -330,14 +392,21 @@ export function layoutComposite(
   return { nodes: rfNodes, edges: rfEdges };
 }
 
-/** Cheap equality check so DiagramCanvas only relayouts when the model or
- * the set of expanded groups actually changed — not on every selection. */
-export function compositeSignature(model: C4Model, expandedIds: Set<string>): string {
+/** Cheap equality check so DiagramCanvas only relayouts when the model, the
+ * set of expanded groups, or which node is actively expanding (loading)
+ * changed — the last of those is what makes the skeleton placeholder appear
+ * and disappear at the right moments, not just on selection changes. */
+export function compositeSignature(
+  model: C4Model,
+  expandedIds: Set<string>,
+  expandingId: string | null,
+): string {
   return JSON.stringify({
     context: model.context,
     containers: model.containers,
     componentsByContainer: model.componentsByContainer,
     codeByComponent: model.codeByComponent,
     expanded: Array.from(expandedIds).sort(),
+    expanding: expandingId,
   });
 }

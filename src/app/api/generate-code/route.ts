@@ -42,8 +42,14 @@ export async function POST(req: NextRequest) {
     const { object } = await generateObject({
       model: anthropic(MODEL_ID),
       schema: CodeGraphSchema,
-      system: CODE_SYSTEM_PROMPT,
-      prompt: buildCodeUserPrompt(component, container, systemName),
+      messages: [
+        {
+          role: "system",
+          content: CODE_SYSTEM_PROMPT,
+          providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
+        },
+        { role: "user", content: buildCodeUserPrompt(component, container, systemName) },
+      ],
     });
 
     return NextResponse.json(object);

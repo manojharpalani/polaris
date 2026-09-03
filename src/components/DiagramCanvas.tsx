@@ -21,6 +21,7 @@ import { compositeSignature, layoutComposite } from "@/lib/composite-layout";
 import { slugify } from "@/lib/id";
 import C4NodeView from "./nodes/C4NodeView";
 import GroupNode from "./nodes/GroupNode";
+import SkeletonNode from "./nodes/SkeletonNode";
 
 const nodeTypes = {
   person: C4NodeView,
@@ -31,6 +32,7 @@ const nodeTypes = {
   component: C4NodeView,
   class: C4NodeView,
   group: GroupNode,
+  skeleton: SkeletonNode,
 };
 
 const ROOT_ADDABLE: { kind: C4NodeKind; label: string }[] = [
@@ -70,10 +72,12 @@ export default function DiagramCanvas({
   const prevSignature = useRef("");
   const pendingFitView = useRef(false);
 
-  // Full relayout whenever the model's content, or the set of
-  // expanded/collapsed groups, actually changes.
+  // Full relayout whenever the model's content, the set of
+  // expanded/collapsed groups, or which node is actively loading changes —
+  // the last of those is what makes the skeleton placeholder box appear the
+  // instant an expand click fires, rather than only once real data lands.
   useEffect(() => {
-    const sig = compositeSignature(model, expandedIds);
+    const sig = compositeSignature(model, expandedIds, expandingNodeId ?? null);
     if (sig === prevSignature.current) return;
     prevSignature.current = sig;
 
@@ -88,7 +92,7 @@ export default function DiagramCanvas({
     setEdges(rfEdges);
     pendingFitView.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [model, expandedIds]);
+  }, [model, expandedIds, expandingNodeId]);
 
   // Selection + expand-loading highlight only — never touches position/layout.
   useEffect(() => {

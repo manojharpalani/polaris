@@ -13,12 +13,13 @@ import type {
   SelectedItem,
 } from "@/lib/c4-schema";
 import { EXPANDABLE_KIND_BY_LEVEL } from "@/lib/c4-schema";
-import { newId } from "@/lib/id";
+import { newId, slugify } from "@/lib/id";
 import Landing from "@/components/Landing";
 import RequirementsForm from "@/components/RequirementsForm";
 import DiagramCanvas, { type BoundaryInfo } from "@/components/DiagramCanvas";
 import Inspector from "@/components/Inspector";
 import SpaceBackdrop from "@/components/SpaceBackdrop";
+import { modelToStructurizrDsl } from "@/lib/structurizr";
 
 const DEFAULT_NODE_DESCRIPTIONS: Record<C4NodeKind, string> = {
   person: "Describe who this is and what they need from the system.",
@@ -372,6 +373,18 @@ export default function Home() {
     setHasEntered(false);
   }
 
+  function exportStructurizrDsl() {
+    if (!model) return;
+    const dsl = modelToStructurizrDsl(model);
+    const blob = new Blob([dsl], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${slugify(model.systemName) || "polaris"}.dsl`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   if (!hasEntered) {
     return <Landing onEnter={() => setHasEntered(true)} />;
   }
@@ -442,6 +455,13 @@ export default function Home() {
             className="hud-label text-slate-300 px-3 py-1.5 rounded-md border border-slate-600/50 hover:bg-slate-800/60 transition-colors"
           >
             Edit requirements
+          </button>
+          <button
+            onClick={exportStructurizrDsl}
+            title="Export the full model as Structurizr DSL — architecture-as-code you can open in Structurizr Local or run through structurizr-cli"
+            className="hud-label text-slate-300 px-3 py-1.5 rounded-md border border-slate-600/50 hover:bg-slate-800/60 transition-colors"
+          >
+            Export DSL
           </button>
           <button
             onClick={() => exportRef.current?.exportPng()}

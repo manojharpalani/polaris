@@ -8,6 +8,8 @@ type Props = {
   node?: C4Node;
   edge?: C4Edge;
   expandable?: boolean;
+  /** Only meaningful when expandable — is it currently drawn open (nested children visible)? */
+  expanded?: boolean;
   onExpandNode?: () => void;
   onUpdateNode: (patch: Partial<C4Node>) => void;
   onDeleteNode: () => void;
@@ -41,6 +43,7 @@ export default function Inspector({
   node,
   edge,
   expandable,
+  expanded,
   onExpandNode,
   onUpdateNode,
   onDeleteNode,
@@ -121,9 +124,13 @@ export default function Inspector({
         {expandable && (
           <button
             onClick={onExpandNode}
-            className="text-sm text-slate-950 font-medium bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-400 hover:to-sky-400 shadow-[0_0_16px_-4px_rgba(34,211,238,0.7)] rounded-md px-3 py-1.5 flex items-center justify-center gap-1.5 transition-all"
+            className={
+              expanded
+                ? "text-sm text-slate-200 font-medium border border-slate-600/50 hover:bg-slate-800/60 rounded-md px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors"
+                : "text-sm text-slate-950 font-medium bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-400 hover:to-sky-400 shadow-[0_0_16px_-4px_rgba(34,211,238,0.7)] rounded-md px-3 py-1.5 flex items-center justify-center gap-1.5 transition-all"
+            }
           >
-            Expand into next level ⌄
+            {expanded ? <>Collapse ⌃</> : <>Expand into next level ⌄</>}
           </button>
         )}
 

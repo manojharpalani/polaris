@@ -1,22 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   C4Edge,
   C4Graph,
   C4Model,
   C4Node,
   C4NodeKind,
-  DiagramLevel,
-  DrillStep,
   RequirementInput,
   SelectedItem,
 } from "@/lib/c4-schema";
-import { EXPANDABLE_KIND_BY_LEVEL } from "@/lib/c4-schema";
 import { newId, slugify } from "@/lib/id";
 import Landing from "@/components/Landing";
 import RequirementsForm from "@/components/RequirementsForm";
-import DiagramCanvas, { type BoundaryInfo } from "@/components/DiagramCanvas";
+import DiagramCanvas from "@/components/DiagramCanvas";
 import Inspector from "@/components/Inspector";
 import SpaceBackdrop from "@/components/SpaceBackdrop";
 import { modelToStructurizrDsl } from "@/lib/structurizr";
@@ -30,6 +27,12 @@ const DEFAULT_NODE_DESCRIPTIONS: Record<C4NodeKind, string> = {
   component: "Describe what this component is responsible for.",
   class: "Describe this class's responsibility.",
 };
+
+// A node of these kinds can be drilled into one level further (a Container
+// into its Components, a Component into its Code/Classes). Everything else
+// — Person, External System, Software System (already always expanded),
+// Datastore, Class — is a leaf.
+const EXPANDABLE_KINDS: C4NodeKind[] = ["container", "component"];
 
 const EMPTY_GRAPH: C4Graph = { nodes: [], edges: [] };
 
@@ -45,17 +48,95 @@ function findComponentNode(model: C4Model, componentId: string): C4Node | undefi
   return undefined;
 }
 
-function crumbLabel(step: DrillStep, model: C4Model): string {
-  switch (step.level) {
+function findNodeGlobally(model: C4Model, id: string): C4Node | undefined {
+  return (
+    model.context.nodes.find((n) => n.id === id) ??
+    model.containers.nodes.find((n) => n.id === id) ??
+    Object.values(model.componentsByContainer)
+      .flatMap((g) => g.nodes)
+      .find((n) => n.id === id) ??
+    Object.values(model.codeByComponent)
+      .flatMap((g) => g.nodes)
+      .find((n) => n.id === id)
+  );
+}
+
+function findEdgeGlobally(model: C4Model, id: string): C4Edge | undefined {
+  return (
+    model.context.edges.find((e) => e.id === id) ??
+    model.containers.edges.find((e) => e.id === id) ??
+    Object.values(model.componentsByContainer)
+      .flatMap((g) => g.edges)
+      .find((e) => e.id === id) ??
+    Object.values(model.codeByComponent)
+      .flatMap((g) => g.edges)
+      .find((e) => e.id === id)
+  );
+}
+
+// ---- Addressing one of the model's several node/edge graphs uniformly ----
+
+type GraphRef =
+  | { kind: "context" }
+  | { kind: "containers" }
+  | { kind: "component"; containerId: string }
+  | { kind: "code"; componentId: string };
+
+function getGraph(model: C4Model, ref: GraphRef): C4Graph {
+  switch (ref.kind) {
     case "context":
-      return "Context";
-    case "container":
-      return "Container";
+      return model.context;
+    case "containers":
+      return model.containers;
     case "component":
-      return `Component · ${findContainerNode(model, step.containerId)?.name ?? step.containerId}`;
+      return model.componentsByContainer[ref.containerId] ?? EMPTY_GRAPH;
     case "code":
-      return `Code · ${findComponentNode(model, step.componentId)?.name ?? step.componentId}`;
+      return model.codeByComponent[ref.componentId] ?? EMPTY_GRAPH;
   }
+}
+
+function setGraph(model: C4Model, ref: GraphRef, graph: C4Graph): C4Model {
+  switch (ref.kind) {
+    case "context":
+      return { ...model, context: graph };
+    case "containers":
+      return { ...model, containers: graph };
+    case "component":
+      return {
+        ...model,
+        componentsByContainer: { ...model.componentsByContainer, [ref.containerId]: graph },
+      };
+    case "code":
+      return { ...model, codeByComponent: { ...model.codeByComponent, [ref.componentId]: graph } };
+  }
+}
+
+function allGraphRefs(model: C4Model): GraphRef[] {
+  return [
+    { kind: "context" },
+    { kind: "containers" },
+    ...Object.keys(model.componentsByContainer).map(
+      (containerId): GraphRef => ({ kind: "component", containerId }),
+    ),
+    ...Object.keys(model.codeByComponent).map(
+      (componentId): GraphRef => ({ kind: "code", componentId }),
+    ),
+  ];
+}
+
+/** Deepest graph that already contains both endpoints — where a new edge between them belongs. */
+function resolveEdgeTarget(model: C4Model, source: string, target: string): GraphRef | null {
+  const refs = allGraphRefs(model);
+  const priorityOrder: GraphRef["kind"][] = ["code", "component", "containers", "context"];
+  for (const kind of priorityOrder) {
+    for (const ref of refs.filter((r) => r.kind === kind)) {
+      const g = getGraph(model, ref);
+      if (g.nodes.some((n) => n.id === source) && g.nodes.some((n) => n.id === target)) {
+        return ref;
+      }
+    }
+  }
+  return null;
 }
 
 /**
@@ -96,7 +177,10 @@ export default function Home() {
   const [hasEntered, setHasEntered] = useState(false);
   const [lastInput, setLastInput] = useState<RequirementInput | undefined>();
   const [model, setModel] = useState<C4Model | null>(null);
-  const [drillPath, setDrillPath] = useState<DrillStep[]>([{ level: "context" }]);
+  // Ids of Container/Component nodes currently drawn open (their generated
+  // children nested visibly inside them). The Software System itself is
+  // always open — its Container graph is generated up front.
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<SelectedItem>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,8 +188,6 @@ export default function Home() {
   const [expandError, setExpandError] = useState<string | null>(null);
   const [editingRequirements, setEditingRequirements] = useState(false);
   const exportRef = useRef<{ exportPng: () => void; exportSvg: () => void } | null>(null);
-
-  const currentStep = drillPath[drillPath.length - 1];
 
   // Which top-level screen is showing — used only to reset scroll position
   // on transitions below, so e.g. clicking a CTA near the bottom of the
@@ -130,7 +212,7 @@ export default function Home() {
       );
       setModel({ ...json, componentsByContainer: {}, codeByComponent: {} });
       setLastInput(input);
-      setDrillPath([{ level: "context" }]);
+      setExpandedIds(new Set());
       setSelected(null);
       setEditingRequirements(false);
     } catch (err) {
@@ -140,170 +222,161 @@ export default function Home() {
     }
   }
 
-  const currentGraph = useMemo((): C4Graph | null => {
-    if (!model) return null;
-    switch (currentStep.level) {
-      case "context":
-        return model.context;
-      case "container":
-        return model.containers;
-      case "component":
-        return model.componentsByContainer[currentStep.containerId] ?? EMPTY_GRAPH;
-      case "code":
-        return model.codeByComponent[currentStep.componentId] ?? EMPTY_GRAPH;
-    }
-  }, [model, currentStep]);
-
-  const boundary = useMemo((): BoundaryInfo | null => {
-    if (!model || !currentGraph) return null;
-    if (currentStep.level === "context") return null;
-    if (currentStep.level === "container") {
-      return {
-        label: model.systemName,
-        kindLabel: "Software System",
-        memberIds: currentGraph.nodes
-          .filter((n) => n.kind === "container" || n.kind === "datastore")
-          .map((n) => n.id),
-      };
-    }
-    if (currentStep.level === "component") {
-      const container = findContainerNode(model, currentStep.containerId);
-      return {
-        label: container?.name ?? currentStep.containerId,
-        kindLabel: "Container",
-        memberIds: currentGraph.nodes.filter((n) => n.kind === "component").map((n) => n.id),
-      };
-    }
-    // code
-    const component = findComponentNode(model, currentStep.componentId);
-    return {
-      label: component?.name ?? currentStep.componentId,
-      kindLabel: "Component",
-      memberIds: currentGraph.nodes.filter((n) => n.kind === "class").map((n) => n.id),
-    };
-  }, [model, currentGraph, currentStep]);
-
-  const expandableKind = EXPANDABLE_KIND_BY_LEVEL[currentStep.level];
-
-  function updateCurrentGraph(
-    fn: (nodes: C4Node[], edges: C4Edge[]) => { nodes: C4Node[]; edges: C4Edge[] },
-  ) {
+  function updateNode(id: string, patch: Partial<C4Node>) {
     setModel((prev) => {
       if (!prev) return prev;
-      const step = drillPath[drillPath.length - 1];
-      if (step.level === "context") {
-        return { ...prev, context: fn(prev.context.nodes, prev.context.edges) };
+      let next = prev;
+      for (const ref of allGraphRefs(prev)) {
+        const g = getGraph(prev, ref);
+        if (g.nodes.some((n) => n.id === id)) {
+          next = setGraph(next, ref, {
+            ...g,
+            nodes: g.nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)),
+          });
+        }
       }
-      if (step.level === "container") {
-        return { ...prev, containers: fn(prev.containers.nodes, prev.containers.edges) };
-      }
-      if (step.level === "component") {
-        const g = prev.componentsByContainer[step.containerId] ?? EMPTY_GRAPH;
-        return {
-          ...prev,
-          componentsByContainer: {
-            ...prev.componentsByContainer,
-            [step.containerId]: fn(g.nodes, g.edges),
-          },
-        };
-      }
-      const g = prev.codeByComponent[step.componentId] ?? EMPTY_GRAPH;
-      return {
-        ...prev,
-        codeByComponent: { ...prev.codeByComponent, [step.componentId]: fn(g.nodes, g.edges) },
-      };
+      return next;
     });
   }
 
-  function updateNode(id: string, patch: Partial<C4Node>) {
-    updateCurrentGraph((nodes, edges) => ({
-      nodes: nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)),
-      edges,
-    }));
-  }
-
   function deleteNode(id: string) {
-    updateCurrentGraph((nodes, edges) => ({
-      nodes: nodes.filter((n) => n.id !== id),
-      edges: edges.filter((e) => e.source !== id && e.target !== id),
-    }));
+    setModel((prev) => {
+      if (!prev) return prev;
+      let next = prev;
+      for (const ref of allGraphRefs(prev)) {
+        const g = getGraph(prev, ref);
+        const touchesNode = g.nodes.some((n) => n.id === id);
+        const touchesEdge = g.edges.some((e) => e.source === id || e.target === id);
+        if (touchesNode || touchesEdge) {
+          next = setGraph(next, ref, {
+            nodes: g.nodes.filter((n) => n.id !== id),
+            edges: g.edges.filter((e) => e.source !== id && e.target !== id),
+          });
+        }
+      }
+      return next;
+    });
     setSelected(null);
   }
 
-  function addNode(kind: C4NodeKind) {
+  function addNodeToGraph(kind: C4NodeKind, ref: GraphRef) {
     const id = newId(kind);
-    updateCurrentGraph((nodes, edges) => ({
-      nodes: [
-        ...nodes,
-        {
-          id,
-          kind,
-          name: "New " + kind.replace(/([A-Z])/g, " $1"),
-          description: DEFAULT_NODE_DESCRIPTIONS[kind],
-        },
-      ],
-      edges,
-    }));
+    setModel((prev) => {
+      if (!prev) return prev;
+      const g = getGraph(prev, ref);
+      return setGraph(prev, ref, {
+        ...g,
+        nodes: [
+          ...g.nodes,
+          {
+            id,
+            kind,
+            name: "New " + kind.replace(/([A-Z])/g, " $1"),
+            description: DEFAULT_NODE_DESCRIPTIONS[kind],
+          },
+        ],
+      });
+    });
     setSelected({ kind: "node", id });
   }
 
+  /** Add a node from the canvas — either the global toolbar (no parent) or
+   * a specific expanded group's own "+" button (parentGroupId = that
+   * container's/component's id). */
+  function addChildNode(kind: C4NodeKind, parentGroupId?: string) {
+    if (kind === "person" || kind === "externalSystem") {
+      addNodeToGraph(kind, { kind: "context" });
+    } else if (kind === "container" || kind === "datastore") {
+      addNodeToGraph(kind, { kind: "containers" });
+    } else if (kind === "component" && parentGroupId) {
+      addNodeToGraph(kind, { kind: "component", containerId: parentGroupId });
+    } else if (kind === "class" && parentGroupId) {
+      addNodeToGraph(kind, { kind: "code", componentId: parentGroupId });
+    }
+  }
+
   function updateEdge(id: string, patch: Partial<C4Edge>) {
-    updateCurrentGraph((nodes, edges) => ({
-      nodes,
-      edges: edges.map((e) => (e.id === id ? { ...e, ...patch } : e)),
-    }));
+    setModel((prev) => {
+      if (!prev) return prev;
+      for (const ref of allGraphRefs(prev)) {
+        const g = getGraph(prev, ref);
+        if (g.edges.some((e) => e.id === id)) {
+          return setGraph(prev, ref, {
+            ...g,
+            edges: g.edges.map((e) => (e.id === id ? { ...e, ...patch } : e)),
+          });
+        }
+      }
+      return prev;
+    });
   }
 
   function deleteEdge(id: string) {
-    updateCurrentGraph((nodes, edges) => ({
-      nodes,
-      edges: edges.filter((e) => e.id !== id),
-    }));
+    setModel((prev) => {
+      if (!prev) return prev;
+      for (const ref of allGraphRefs(prev)) {
+        const g = getGraph(prev, ref);
+        if (g.edges.some((e) => e.id === id)) {
+          return setGraph(prev, ref, { ...g, edges: g.edges.filter((e) => e.id !== id) });
+        }
+      }
+      return prev;
+    });
     setSelected(null);
   }
 
   function addEdge(source: string, target: string) {
+    if (!model) return;
+    const ref = resolveEdgeTarget(model, source, target);
+    if (!ref) return;
     const id = newId(`${source}-${target}`);
-    updateCurrentGraph((nodes, edges) => ({
-      nodes,
-      edges: [...edges, { id, source, target, label: "communicates with" }],
-    }));
+    setModel((prev) => {
+      if (!prev) return prev;
+      const g = getGraph(prev, ref);
+      return setGraph(prev, ref, {
+        ...g,
+        edges: [...g.edges, { id, source, target, label: "communicates with" }],
+      });
+    });
     setSelected({ kind: "edge", id });
   }
 
-  async function handleExpand(nodeId: string) {
-    if (!model || !currentGraph) return;
-    const node = currentGraph.nodes.find((n) => n.id === nodeId);
-    if (!node) return;
-    setExpandError(null);
+  /** Toggle a Container/Component open or closed. Opening it for the first
+   * time generates its children via the appropriate API call; opening it
+   * again after that (or closing it) is instant, no fetch. */
+  async function toggleExpand(nodeId: string) {
+    if (!model) return;
 
-    if (currentStep.level === "context") {
-      // The system node's Container graph was already generated up front.
-      setDrillPath((p) => [...p, { level: "container" }]);
-      setSelected(null);
+    if (expandedIds.has(nodeId)) {
+      setExpandedIds((s) => {
+        const next = new Set(s);
+        next.delete(nodeId);
+        return next;
+      });
       return;
     }
 
-    if (currentStep.level === "container") {
+    const containerNode = findContainerNode(model, nodeId);
+    if (containerNode) {
       if (model.componentsByContainer[nodeId]) {
-        setDrillPath((p) => [...p, { level: "component", containerId: nodeId }]);
-        setSelected(null);
+        setExpandedIds((s) => new Set(s).add(nodeId));
         return;
       }
       setExpandingId(nodeId);
+      setExpandError(null);
       try {
         const neighborIds = new Set<string>();
-        currentGraph.edges.forEach((e) => {
+        model.containers.edges.forEach((e) => {
           if (e.source === nodeId) neighborIds.add(e.target);
           if (e.target === nodeId) neighborIds.add(e.source);
         });
-        const neighbors = currentGraph.nodes.filter((n) => neighborIds.has(n.id));
+        const neighbors = model.containers.nodes.filter((n) => neighborIds.has(n.id));
 
         const res = await fetch("/api/generate-components", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            container: node,
+            container: containerNode,
             systemName: model.systemName,
             systemDescription: model.systemDescription,
             requirements: lastInput,
@@ -314,14 +387,10 @@ export default function Home() {
 
         setModel((prev) =>
           prev
-            ? {
-                ...prev,
-                componentsByContainer: { ...prev.componentsByContainer, [nodeId]: json },
-              }
+            ? { ...prev, componentsByContainer: { ...prev.componentsByContainer, [nodeId]: json } }
             : prev,
         );
-        setDrillPath((p) => [...p, { level: "component", containerId: nodeId }]);
-        setSelected(null);
+        setExpandedIds((s) => new Set(s).add(nodeId));
       } catch (err) {
         setExpandError(err instanceof Error ? err.message : "Couldn't generate components");
       } finally {
@@ -330,22 +399,26 @@ export default function Home() {
       return;
     }
 
-    if (currentStep.level === "component") {
+    const componentNode = findComponentNode(model, nodeId);
+    if (componentNode) {
       if (model.codeByComponent[nodeId]) {
-        setDrillPath((p) => [...p, { level: "code", componentId: nodeId }]);
-        setSelected(null);
+        setExpandedIds((s) => new Set(s).add(nodeId));
         return;
       }
-      const containerNode = findContainerNode(model, currentStep.containerId);
-      if (!containerNode) return;
+      const ownerContainerId = Object.keys(model.componentsByContainer).find((cid) =>
+        model.componentsByContainer[cid].nodes.some((n) => n.id === nodeId),
+      );
+      const ownerContainer = ownerContainerId ? findContainerNode(model, ownerContainerId) : undefined;
+      if (!ownerContainer) return;
       setExpandingId(nodeId);
+      setExpandError(null);
       try {
         const res = await fetch("/api/generate-code", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            component: node,
-            container: containerNode,
+            component: componentNode,
+            container: ownerContainer,
             systemName: model.systemName,
           }),
         });
@@ -354,19 +427,13 @@ export default function Home() {
         setModel((prev) =>
           prev ? { ...prev, codeByComponent: { ...prev.codeByComponent, [nodeId]: json } } : prev,
         );
-        setDrillPath((p) => [...p, { level: "code", componentId: nodeId }]);
-        setSelected(null);
+        setExpandedIds((s) => new Set(s).add(nodeId));
       } catch (err) {
         setExpandError(err instanceof Error ? err.message : "Couldn't generate code elements");
       } finally {
         setExpandingId(null);
       }
     }
-  }
-
-  function navigateTo(index: number) {
-    setDrillPath((p) => p.slice(0, index + 1));
-    setSelected(null);
   }
 
   function goHome() {
@@ -401,10 +468,8 @@ export default function Home() {
     );
   }
 
-  const selectedNode =
-    selected?.kind === "node" ? currentGraph?.nodes.find((n) => n.id === selected.id) : undefined;
-  const selectedEdge =
-    selected?.kind === "edge" ? currentGraph?.edges.find((e) => e.id === selected.id) : undefined;
+  const selectedNode = selected?.kind === "node" ? findNodeGlobally(model, selected.id) : undefined;
+  const selectedEdge = selected?.kind === "edge" ? findEdgeGlobally(model, selected.id) : undefined;
 
   return (
     <div className="polaris-scene h-screen w-screen bg-[#050810]">
@@ -428,28 +493,19 @@ export default function Home() {
             <span className="font-semibold text-white shrink-0 tracking-tight">Polaris</span>
           </button>
           <span className="text-slate-600">/</span>
-          <span className="text-slate-400 text-sm truncate max-w-[160px]">{model.systemName}</span>
+          <span className="text-slate-400 text-sm truncate max-w-[240px]">{model.systemName}</span>
         </div>
 
-        <nav className="hud-label flex items-center gap-1 min-w-0 overflow-x-auto">
-          {drillPath.map((step, i) => (
-            <span key={i} className="flex items-center gap-1 shrink-0">
-              {i > 0 && <span className="text-slate-700">/</span>}
-              <button
-                onClick={() => navigateTo(i)}
-                className={
-                  i === drillPath.length - 1
-                    ? "text-cyan-300 px-1"
-                    : "text-slate-500 hover:text-slate-300 px-1 transition-colors"
-                }
-              >
-                {crumbLabel(step, model)}
-              </button>
-            </span>
-          ))}
-        </nav>
-
         <div className="flex items-center gap-2 shrink-0">
+          {expandedIds.size > 0 && (
+            <button
+              onClick={() => setExpandedIds(new Set())}
+              title="Collapse every expanded container/component back to a single box"
+              className="hud-label text-slate-400 px-3 py-1.5 rounded-md border border-slate-700/50 hover:bg-slate-800/60 hover:text-slate-300 transition-colors"
+            >
+              Collapse all
+            </button>
+          )}
           <button
             onClick={() => setEditingRequirements(true)}
             className="hud-label text-slate-300 px-3 py-1.5 rounded-md border border-slate-600/50 hover:bg-slate-800/60 transition-colors"
@@ -489,21 +545,17 @@ export default function Home() {
 
       <div className="flex-1 flex min-h-0">
         <div className="flex-1 min-w-0">
-          {currentGraph && (
-            <DiagramCanvas
-              level={currentStep.level as DiagramLevel}
-              graph={currentGraph}
-              boundary={boundary}
-              selected={selected}
-              onSelect={setSelected}
-              onAddNode={addNode}
-              onAddEdge={addEdge}
-              expandableKind={expandableKind}
-              expandingNodeId={expandingId}
-              onExpand={handleExpand}
-              exportRef={exportRef}
-            />
-          )}
+          <DiagramCanvas
+            model={model}
+            expandedIds={expandedIds}
+            expandingNodeId={expandingId}
+            selected={selected}
+            onSelect={setSelected}
+            onToggleExpand={toggleExpand}
+            onAddChild={addChildNode}
+            onAddEdge={addEdge}
+            exportRef={exportRef}
+          />
         </div>
         <aside className="w-[340px] shrink-0 border-l border-cyan-500/10 bg-[#080d1a]/90 backdrop-blur overflow-y-auto">
           <Inspector
@@ -511,12 +563,9 @@ export default function Home() {
             selected={selected}
             node={selectedNode}
             edge={selectedEdge}
-            expandable={
-              selectedNode !== undefined &&
-              expandableKind !== null &&
-              selectedNode.kind === expandableKind
-            }
-            onExpandNode={() => selected?.kind === "node" && handleExpand(selected.id)}
+            expandable={selectedNode !== undefined && EXPANDABLE_KINDS.includes(selectedNode.kind)}
+            expanded={selected?.kind === "node" && expandedIds.has(selected.id)}
+            onExpandNode={() => selected?.kind === "node" && toggleExpand(selected.id)}
             onUpdateNode={(patch) => selected?.kind === "node" && updateNode(selected.id, patch)}
             onDeleteNode={() => selected?.kind === "node" && deleteNode(selected.id)}
             onUpdateEdge={(patch) => selected?.kind === "edge" && updateEdge(selected.id, patch)}

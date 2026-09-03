@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef } from "react";
 import ReactFlow, {
   Background,
   Controls,
-  MarkerType,
   Panel,
+  getNodesBounds,
+  getViewportForBounds,
   useEdgesState,
   useNodesState,
   type Connection,
@@ -15,10 +16,11 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { toPng, toSvg } from "html-to-image";
-import type { C4Graph, C4NodeKind, DiagramLevel, SelectedItem } from "@/lib/c4-schema";
-import { boundingBox, layoutGraph } from "@/lib/layout";
+import type { C4Model, C4NodeKind, SelectedItem } from "@/lib/c4-schema";
+import { compositeSignature, layoutComposite } from "@/lib/composite-layout";
+import { slugify } from "@/lib/id";
 import C4NodeView from "./nodes/C4NodeView";
-import BoundaryNode from "./nodes/BoundaryNode";
+import GroupNode from "./nodes/GroupNode";
 
 const nodeTypes = {
   person: C4NodeView,
@@ -28,97 +30,37 @@ const nodeTypes = {
   datastore: C4NodeView,
   component: C4NodeView,
   class: C4NodeView,
-  boundary: BoundaryNode,
+  group: GroupNode,
 };
 
-const BOUNDARY_ID = "__boundary__";
-
-export type BoundaryInfo = {
-  label: string;
-  kindLabel: string;
-  /** ids of the nodes that belong "inside" this boundary */
-  memberIds: string[];
-};
-
-function graphSignature(graph: C4Graph, boundary?: BoundaryInfo | null) {
-  return JSON.stringify({
-    nodes: graph.nodes.map((n) => [n.id, n.kind, n.name, n.description, n.technology ?? ""]),
-    edges: graph.edges.map((e) => [e.id, e.source, e.target, e.label, e.technology ?? ""]),
-    boundary: boundary ? [boundary.label, boundary.kindLabel, boundary.memberIds.join(",")] : null,
-  });
-}
-
-function toRfNodes(
-  graph: C4Graph,
-  expandableKind: C4NodeKind | null,
-  expandingNodeId: string | null | undefined,
-  onExpand: (id: string) => void,
-): Node[] {
-  return graph.nodes.map((n) => ({
-    id: n.id,
-    type: n.kind,
-    position: { x: 0, y: 0 },
-    data: {
-      ...n,
-      expandable: expandableKind !== null && n.kind === expandableKind,
-      expandLoading: expandingNodeId === n.id,
-      onExpand: () => onExpand(n.id),
-    },
-  }));
-}
-
-function toRfEdges(graph: C4Graph): Edge[] {
-  return graph.edges.map((e) => ({
-    id: e.id,
-    source: e.source,
-    target: e.target,
-    label: e.technology ? `${e.label} [${e.technology}]` : e.label,
-    animated: false,
-    markerEnd: { type: MarkerType.ArrowClosed },
-    style: { stroke: "#64748b", strokeWidth: 1.5 },
-    labelStyle: { fill: "#334155", fontSize: 11 },
-    labelBgStyle: { fill: "#f8fafc", fillOpacity: 0.9 },
-  }));
-}
+const ROOT_ADDABLE: { kind: C4NodeKind; label: string }[] = [
+  { kind: "person", label: "+ Person" },
+  { kind: "externalSystem", label: "+ External System" },
+  { kind: "container", label: "+ Container" },
+  { kind: "datastore", label: "+ Datastore" },
+];
 
 type Props = {
-  level: DiagramLevel;
-  graph: C4Graph;
-  boundary?: BoundaryInfo | null;
+  model: C4Model;
+  expandedIds: Set<string>;
+  expandingNodeId?: string | null;
   selected: SelectedItem;
   onSelect: (item: SelectedItem) => void;
-  onAddNode: (kind: C4NodeKind) => void;
+  onToggleExpand: (id: string) => void;
+  onAddChild: (kind: C4NodeKind, parentGroupId?: string) => void;
   onAddEdge: (source: string, target: string) => void;
-  expandableKind: C4NodeKind | null;
-  expandingNodeId?: string | null;
-  onExpand: (nodeId: string) => void;
   exportRef?: React.MutableRefObject<{ exportPng: () => void; exportSvg: () => void } | null>;
 };
 
-const ADDABLE_KINDS: Record<DiagramLevel, { kind: C4NodeKind; label: string }[]> = {
-  context: [
-    { kind: "person", label: "+ Person" },
-    { kind: "externalSystem", label: "+ External System" },
-  ],
-  container: [
-    { kind: "container", label: "+ Container" },
-    { kind: "datastore", label: "+ Datastore" },
-  ],
-  component: [{ kind: "component", label: "+ Component" }],
-  code: [{ kind: "class", label: "+ Class" }],
-};
-
 export default function DiagramCanvas({
-  level,
-  graph,
-  boundary,
+  model,
+  expandedIds,
+  expandingNodeId,
   selected,
   onSelect,
-  onAddNode,
+  onToggleExpand,
+  onAddChild,
   onAddEdge,
-  expandableKind,
-  expandingNodeId,
-  onExpand,
   exportRef,
 }: Props) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node[]>([] as unknown as Node[]);
@@ -128,58 +70,37 @@ export default function DiagramCanvas({
   const prevSignature = useRef("");
   const pendingFitView = useRef(false);
 
-  // Full relayout whenever the graph's content, or the drilled-into
-  // boundary, actually changes (level switch, expand, add/remove/edit).
+  // Full relayout whenever the model's content, or the set of
+  // expanded/collapsed groups, actually changes.
   useEffect(() => {
-    const sig = graphSignature(graph, boundary);
+    const sig = compositeSignature(model, expandedIds);
     if (sig === prevSignature.current) return;
     prevSignature.current = sig;
 
-    const rfNodes = toRfNodes(graph, expandableKind, expandingNodeId, onExpand);
-    const rfEdges = toRfEdges(graph);
-    let laidOut = layoutGraph(rfNodes, rfEdges);
-
-    if (boundary) {
-      const box = boundingBox(laidOut, boundary.memberIds);
-      if (box) {
-        laidOut = [
-          {
-            id: BOUNDARY_ID,
-            type: "boundary",
-            position: { x: box.x, y: box.y },
-            style: { width: box.width, height: box.height },
-            data: { label: boundary.label, kindLabel: boundary.kindLabel },
-            draggable: false,
-            selectable: false,
-            connectable: false,
-            zIndex: -1,
-          },
-          ...laidOut,
-        ];
-      }
-    }
-
-    setNodes(laidOut);
+    const { nodes: rfNodes, edges: rfEdges } = layoutComposite(
+      model,
+      expandedIds,
+      expandingNodeId ?? null,
+      onToggleExpand,
+      onAddChild,
+    );
+    setNodes(rfNodes);
     setEdges(rfEdges);
     pendingFitView.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graph, boundary]);
+  }, [model, expandedIds]);
 
   // Selection + expand-loading highlight only — never touches position/layout.
   useEffect(() => {
     setNodes((nds) =>
-      nds.map((n) =>
-        n.id === BOUNDARY_ID
-          ? n
-          : {
-              ...n,
-              data: {
-                ...n.data,
-                selected: selected?.kind === "node" && selected.id === n.id,
-                expandLoading: expandingNodeId === n.id,
-              },
-            },
-      ),
+      nds.map((n) => ({
+        ...n,
+        data: {
+          ...n.data,
+          selected: selected?.kind === "node" && selected.id === n.id,
+          expandLoading: expandingNodeId === n.id,
+        },
+      })),
     );
     setEdges((eds) =>
       eds.map((e) => ({
@@ -205,19 +126,44 @@ export default function DiagramCanvas({
 
   const doExport = useMemo(
     () => (format: "png" | "svg") => {
-      const viewport = wrapperRef.current?.querySelector(
+      const viewportEl = wrapperRef.current?.querySelector(
         ".react-flow__viewport",
       ) as HTMLElement | null;
-      if (!viewport) return;
+      const inst = rfInstance.current;
+      if (!viewportEl || !inst) return;
+
+      // The viewport element's own DOM box is whatever the current pan/zoom
+      // happens to leave it at — capturing that directly produces a
+      // mis-sized background fill. Instead, size the export to the real
+      // bounding box of the nodes and force the capture into exactly that
+      // frame, so the background fills it edge-to-edge regardless of the
+      // on-screen pan/zoom. This is the pattern React Flow's own docs
+      // recommend for image export.
+      const nodesBounds = getNodesBounds(inst.getNodes());
+      const padding = 40;
+      const width = Math.max(1, Math.round(nodesBounds.width + padding * 2));
+      const height = Math.max(1, Math.round(nodesBounds.height + padding * 2));
+      const vp = getViewportForBounds(nodesBounds, width, height, 0.05, 2, padding);
+
       const fn = format === "png" ? toPng : toSvg;
-      fn(viewport, { backgroundColor: "#050810", pixelRatio: 2 }).then((dataUrl) => {
+      fn(viewportEl, {
+        backgroundColor: "#050810",
+        width,
+        height,
+        pixelRatio: 2,
+        style: {
+          width: `${width}px`,
+          height: `${height}px`,
+          transform: `translate(${vp.x}px, ${vp.y}px) scale(${vp.zoom})`,
+        },
+      }).then((dataUrl) => {
         const a = document.createElement("a");
         a.href = dataUrl;
-        a.download = `polaris-${level}.${format}`;
+        a.download = `${slugify(model.systemName) || "polaris"}.${format}`;
         a.click();
       });
     },
-    [level],
+    [model.systemName],
   );
 
   useEffect(() => {
@@ -247,15 +193,12 @@ export default function DiagramCanvas({
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         onInit={(inst) => (rfInstance.current = inst)}
-        onNodeClick={(_, node) => {
-          if (node.id === BOUNDARY_ID) return;
-          onSelect({ kind: "node", id: node.id });
-        }}
+        onNodeClick={(_, node) => onSelect({ kind: "node", id: node.id })}
         onEdgeClick={(_, edge) => onSelect({ kind: "edge", id: edge.id })}
         onPaneClick={() => onSelect(null)}
         deleteKeyCode={null}
         fitView
-        minZoom={0.1}
+        minZoom={0.05}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
         className="polaris-flow"
@@ -263,10 +206,10 @@ export default function DiagramCanvas({
         <Background color="#1e3a5c" gap={26} size={1.5} />
         <Controls showInteractive={false} />
         <Panel position="top-left" className="flex gap-2">
-          {ADDABLE_KINDS[level].map((a) => (
+          {ROOT_ADDABLE.map((a) => (
             <button
               key={a.kind}
-              onClick={() => onAddNode(a.kind)}
+              onClick={() => onAddChild(a.kind)}
               className="hud-label px-2.5 py-1.5 rounded-md bg-slate-900/80 border border-cyan-400/25 text-cyan-300 hover:bg-slate-800/80 hover:border-cyan-400/40 backdrop-blur transition-colors"
             >
               {a.label}

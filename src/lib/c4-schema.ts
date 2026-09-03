@@ -119,26 +119,6 @@ export type C4Model = z.infer<typeof C4ModelSchema> & {
   codeByComponent: Record<string, C4Graph>;
 };
 
-// ---- Navigation: where in the C4 hierarchy the viewer currently is ----
-
-export type DrillStep =
-  | { level: "context" }
-  | { level: "container" }
-  | { level: "component"; containerId: string }
-  | { level: "code"; componentId: string };
-
-export type DiagramLevel = DrillStep["level"];
-
-export const EXPANDABLE_KIND_BY_LEVEL: Record<DiagramLevel, C4NodeKind | null> =
-  {
-    // A node of this kind, when clicked-to-expand at this level, drills into
-    // the next level down. null = nothing expands further from here yet.
-    context: "softwareSystem",
-    container: "container",
-    component: "component",
-    code: null,
-  };
-
 export type SelectedItem =
   | { kind: "node"; id: string }
   | { kind: "edge"; id: string }

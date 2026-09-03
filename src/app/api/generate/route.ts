@@ -36,14 +36,12 @@ export async function POST(req: NextRequest) {
     const { object } = await generateObject({
       model: anthropic(MODEL_ID),
       schema: C4ModelSchema,
-      messages: [
-        {
-          role: "system",
-          content: SYSTEM_PROMPT,
-          providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
-        },
-        { role: "user", content: buildUserPrompt(parsed.data) },
-      ],
+      instructions: {
+        role: "system",
+        content: SYSTEM_PROMPT,
+        providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
+      },
+      prompt: buildUserPrompt(parsed.data),
     });
 
     return NextResponse.json(object);

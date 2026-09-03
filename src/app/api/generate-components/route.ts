@@ -49,23 +49,18 @@ export async function POST(req: NextRequest) {
     const { object } = await generateObject({
       model: anthropic(MODEL_ID),
       schema: ComponentGraphSchema,
-      messages: [
-        {
-          role: "system",
-          content: COMPONENT_SYSTEM_PROMPT,
-          providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
-        },
-        {
-          role: "user",
-          content: buildComponentUserPrompt(
-            container,
-            systemName,
-            systemDescription,
-            requirements,
-            neighbors,
-          ),
-        },
-      ],
+      instructions: {
+        role: "system",
+        content: COMPONENT_SYSTEM_PROMPT,
+        providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
+      },
+      prompt: buildComponentUserPrompt(
+        container,
+        systemName,
+        systemDescription,
+        requirements,
+        neighbors,
+      ),
     });
 
     return NextResponse.json(object);

@@ -210,7 +210,7 @@ export default function DiagramCanvas({
       ) as HTMLElement | null;
       if (!viewport) return;
       const fn = format === "png" ? toPng : toSvg;
-      fn(viewport, { backgroundColor: "#0f172a", pixelRatio: 2 }).then((dataUrl) => {
+      fn(viewport, { backgroundColor: "#050810", pixelRatio: 2 }).then((dataUrl) => {
         const a = document.createElement("a");
         a.href = dataUrl;
         a.download = `polaris-${level}.${format}`;
@@ -238,7 +238,7 @@ export default function DiagramCanvas({
   );
 
   return (
-    <div ref={wrapperRef} className="w-full h-full">
+    <div ref={wrapperRef} className="w-full h-full bg-[#050810]">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -258,15 +258,16 @@ export default function DiagramCanvas({
         minZoom={0.1}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
+        className="polaris-flow"
       >
-        <Background color="#334155" gap={20} />
+        <Background color="#1e3a5c" gap={26} size={1.5} />
         <Controls showInteractive={false} />
         <Panel position="top-left" className="flex gap-2">
           {ADDABLE_KINDS[level].map((a) => (
             <button
               key={a.kind}
               onClick={() => onAddNode(a.kind)}
-              className="text-xs px-2.5 py-1.5 rounded-md bg-white border border-slate-300 shadow-sm hover:bg-slate-50 text-slate-700"
+              className="hud-label px-2.5 py-1.5 rounded-md bg-slate-900/80 border border-cyan-400/25 text-cyan-300 hover:bg-slate-800/80 hover:border-cyan-400/40 backdrop-blur transition-colors"
             >
               {a.label}
             </button>

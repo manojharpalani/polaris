@@ -327,14 +327,12 @@ export default function Home() {
 
   if (!model || editingRequirements) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <RequirementsForm
-          onSubmit={generate}
-          submitting={submitting}
-          error={error}
-          initial={lastInput}
-        />
-      </div>
+      <RequirementsForm
+        onSubmit={generate}
+        submitting={submitting}
+        error={error}
+        initial={lastInput}
+      />
     );
   }
 
@@ -344,24 +342,31 @@ export default function Home() {
     selected?.kind === "edge" ? currentGraph?.edges.find((e) => e.id === selected.id) : undefined;
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-slate-100">
-      <header className="h-14 shrink-0 flex items-center justify-between px-4 border-b border-slate-200 bg-white gap-4">
+    <div className="h-screen w-screen flex flex-col bg-[#050810]">
+      <header className="h-14 shrink-0 flex items-center justify-between px-4 border-b border-cyan-500/10 bg-[#080d1a]/95 backdrop-blur gap-4">
         <div className="flex items-center gap-2 min-w-0 shrink-0">
-          <span className="font-semibold text-slate-900 shrink-0">Polaris</span>
-          <span className="text-slate-300">/</span>
-          <span className="text-slate-600 text-sm truncate max-w-[160px]">{model.systemName}</span>
+          <svg viewBox="0 0 24 24" className="w-4 h-4 text-cyan-400 shrink-0" fill="none">
+            <path
+              d="M12 2 L14.2 9.8 L22 12 L14.2 14.2 L12 22 L9.8 14.2 L2 12 L9.8 9.8 Z"
+              fill="currentColor"
+              fillOpacity="0.9"
+            />
+          </svg>
+          <span className="font-semibold text-white shrink-0 tracking-tight">Polaris</span>
+          <span className="text-slate-600">/</span>
+          <span className="text-slate-400 text-sm truncate max-w-[160px]">{model.systemName}</span>
         </div>
 
-        <nav className="flex items-center gap-1 text-sm min-w-0 overflow-x-auto">
+        <nav className="hud-label flex items-center gap-1 min-w-0 overflow-x-auto">
           {drillPath.map((step, i) => (
             <span key={i} className="flex items-center gap-1 shrink-0">
-              {i > 0 && <span className="text-slate-300">/</span>}
+              {i > 0 && <span className="text-slate-700">/</span>}
               <button
                 onClick={() => navigateTo(i)}
                 className={
                   i === drillPath.length - 1
-                    ? "font-medium text-slate-900 px-1"
-                    : "text-slate-500 hover:text-slate-700 px-1"
+                    ? "text-cyan-300 px-1"
+                    : "text-slate-500 hover:text-slate-300 px-1 transition-colors"
                 }
               >
                 {crumbLabel(step, model)}
@@ -373,19 +378,19 @@ export default function Home() {
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setEditingRequirements(true)}
-            className="text-sm px-3 py-1.5 rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+            className="hud-label text-slate-300 px-3 py-1.5 rounded-md border border-slate-600/50 hover:bg-slate-800/60 transition-colors"
           >
             Edit requirements
           </button>
           <button
             onClick={() => exportRef.current?.exportPng()}
-            className="text-sm px-3 py-1.5 rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50"
+            className="hud-label text-slate-300 px-3 py-1.5 rounded-md border border-slate-600/50 hover:bg-slate-800/60 transition-colors"
           >
             Export PNG
           </button>
           <button
             onClick={() => exportRef.current?.exportSvg()}
-            className="text-sm px-3 py-1.5 rounded-md bg-slate-900 text-white hover:bg-slate-800"
+            className="hud-label text-slate-950 px-3 py-1.5 rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-400 hover:to-sky-400 shadow-[0_0_16px_-4px_rgba(34,211,238,0.7)] transition-all"
           >
             Export SVG
           </button>
@@ -393,9 +398,9 @@ export default function Home() {
       </header>
 
       {expandError && (
-        <div className="px-4 py-2 text-sm text-red-700 bg-red-50 border-b border-red-200 flex items-center justify-between">
+        <div className="px-4 py-2 text-sm text-rose-300 bg-rose-500/10 border-b border-rose-500/20 flex items-center justify-between">
           <span>{expandError}</span>
-          <button onClick={() => setExpandError(null)} className="text-red-400 hover:text-red-600">
+          <button onClick={() => setExpandError(null)} className="text-rose-400/70 hover:text-rose-300">
             ✕
           </button>
         </div>
@@ -419,7 +424,7 @@ export default function Home() {
             />
           )}
         </div>
-        <aside className="w-[340px] shrink-0 border-l border-slate-200 bg-white overflow-y-auto">
+        <aside className="w-[340px] shrink-0 border-l border-cyan-500/10 bg-[#080d1a] overflow-y-auto">
           <Inspector
             key={selected ? `${selected.kind}:${selected.id}` : "none"}
             selected={selected}

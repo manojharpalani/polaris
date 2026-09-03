@@ -25,16 +25,13 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-        {label}
-      </span>
-      <div className="mt-1">{children}</div>
+      <span className="hud-label text-cyan-400/70">{label}</span>
+      <div className="mt-1.5">{children}</div>
     </label>
   );
 }
 
-const inputCls =
-  "w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400";
+const inputCls = "hud-input";
 
 // The parent must pass a `key` (e.g. `${selected.kind}:${selected.id}`) so this
 // component remounts — and its local form state resets — whenever the
@@ -55,7 +52,7 @@ export default function Inspector({
 
   if (!selected) {
     return (
-      <div className="p-4 text-sm text-slate-400">
+      <div className="p-4 text-sm text-slate-500">
         Click a node or relationship to inspect its rationale, or edit it here.
       </div>
     );
@@ -65,10 +62,8 @@ export default function Inspector({
     return (
       <div className="p-4 flex flex-col gap-3 overflow-y-auto h-full">
         <div className="flex items-center justify-between">
-          <span className="text-xs uppercase tracking-wide text-slate-400">
-            {node.kind}
-          </span>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-sm">
+          <span className="hud-label text-cyan-400/70">{node.kind}</span>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 text-sm">
             ✕
           </button>
         </div>
@@ -115,7 +110,7 @@ export default function Inspector({
 
         {node.relatedRequirements && node.relatedRequirements.length > 0 && (
           <Field label="Driven by requirement(s)">
-            <ul className="text-sm text-slate-600 list-disc pl-4 space-y-1">
+            <ul className="text-sm text-slate-400 list-disc pl-4 space-y-1">
               {node.relatedRequirements.map((r, i) => (
                 <li key={i}>{r}</li>
               ))}
@@ -126,7 +121,7 @@ export default function Inspector({
         {expandable && (
           <button
             onClick={onExpandNode}
-            className="text-sm text-white bg-teal-700 hover:bg-teal-800 rounded-md px-3 py-1.5 flex items-center justify-center gap-1.5"
+            className="text-sm text-slate-950 font-medium bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-400 hover:to-sky-400 shadow-[0_0_16px_-4px_rgba(34,211,238,0.7)] rounded-md px-3 py-1.5 flex items-center justify-center gap-1.5 transition-all"
           >
             Expand into next level ⌄
           </button>
@@ -134,7 +129,7 @@ export default function Inspector({
 
         <button
           onClick={onDeleteNode}
-          className="mt-2 text-sm text-red-600 hover:text-red-700 border border-red-200 hover:bg-red-50 rounded-md px-3 py-1.5"
+          className="mt-2 text-sm text-rose-300 hover:text-rose-200 border border-rose-500/30 hover:bg-rose-500/10 rounded-md px-3 py-1.5 transition-colors"
         >
           Delete node
         </button>
@@ -146,10 +141,8 @@ export default function Inspector({
     return (
       <div className="p-4 flex flex-col gap-3 overflow-y-auto h-full">
         <div className="flex items-center justify-between">
-          <span className="text-xs uppercase tracking-wide text-slate-400">
-            Relationship
-          </span>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-sm">
+          <span className="hud-label text-cyan-400/70">Relationship</span>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 text-sm">
             ✕
           </button>
         </div>
@@ -184,7 +177,7 @@ export default function Inspector({
 
         <button
           onClick={onDeleteEdge}
-          className="mt-2 text-sm text-red-600 hover:text-red-700 border border-red-200 hover:bg-red-50 rounded-md px-3 py-1.5"
+          className="mt-2 text-sm text-rose-300 hover:text-rose-200 border border-rose-500/30 hover:bg-rose-500/10 rounded-md px-3 py-1.5 transition-colors"
         >
           Delete relationship
         </button>

@@ -70,12 +70,14 @@ export default function C4NodeView({ data }: NodeProps<C4NodeData>) {
   return (
     <div
       className={[
-        "w-[240px] min-h-[110px] rounded-md border-2 shadow-md px-3 py-2 flex flex-col gap-1 cursor-pointer transition-transform relative",
+        "w-[240px] min-h-[110px] rounded-md border-2 shadow-lg shadow-black/50 px-3 py-2 flex flex-col gap-1 cursor-pointer transition-all hover:shadow-[0_0_20px_-4px_rgba(34,211,238,0.35)] relative",
         style.bg,
         style.border,
         style.text,
         style.shape ?? "",
-        data.selected ? "ring-2 ring-amber-400 scale-[1.02]" : "",
+        data.selected
+          ? "ring-2 ring-cyan-400 shadow-[0_0_24px_-4px_rgba(34,211,238,0.6)] scale-[1.02]"
+          : "",
       ].join(" ")}
     >
       <Handle type="target" position={Position.Top} className="!bg-white/60" />

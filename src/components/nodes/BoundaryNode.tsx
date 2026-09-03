@@ -15,8 +15,8 @@ export type BoundaryNodeData = {
  */
 export default function BoundaryNode({ data }: NodeProps<BoundaryNodeData>) {
   return (
-    <div className="w-full h-full rounded-lg border-2 border-dashed border-slate-400/70 bg-slate-400/[0.04] relative">
-      <span className="absolute -top-3 left-3 bg-slate-50 px-2 text-[11px] font-medium text-slate-500 uppercase tracking-wide">
+    <div className="w-full h-full rounded-lg border-2 border-dashed border-cyan-400/30 bg-cyan-400/[0.03] relative">
+      <span className="absolute -top-3 left-3 bg-[#080d1a] border border-cyan-400/20 rounded px-2 py-0.5 hud-label text-cyan-300/80">
         {data.kindLabel}: {data.label}
       </span>
     </div>

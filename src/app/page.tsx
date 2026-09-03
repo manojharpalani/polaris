@@ -327,6 +327,10 @@ export default function Home() {
     setSelected(null);
   }
 
+  function goHome() {
+    setHasEntered(false);
+  }
+
   if (!hasEntered) {
     return <Landing onEnter={() => setHasEntered(true)} />;
   }
@@ -338,6 +342,7 @@ export default function Home() {
         submitting={submitting}
         error={error}
         initial={lastInput}
+        onHome={goHome}
       />
     );
   }
@@ -351,14 +356,21 @@ export default function Home() {
     <div className="h-screen w-screen flex flex-col bg-[#050810]">
       <header className="h-14 shrink-0 flex items-center justify-between px-4 border-b border-cyan-500/10 bg-[#080d1a]/95 backdrop-blur gap-4">
         <div className="flex items-center gap-2 min-w-0 shrink-0">
-          <svg viewBox="0 0 24 24" className="w-4 h-4 text-cyan-400 shrink-0" fill="none">
-            <path
-              d="M12 2 L14.2 9.8 L22 12 L14.2 14.2 L12 22 L9.8 14.2 L2 12 L9.8 9.8 Z"
-              fill="currentColor"
-              fillOpacity="0.9"
-            />
-          </svg>
-          <span className="font-semibold text-white shrink-0 tracking-tight">Polaris</span>
+          <button
+            type="button"
+            onClick={goHome}
+            className="flex items-center gap-2 min-w-0 shrink-0 hover:opacity-80 transition-opacity"
+            title="Back to home"
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4 text-cyan-400 shrink-0" fill="none">
+              <path
+                d="M12 2 L14.2 9.8 L22 12 L14.2 14.2 L12 22 L9.8 14.2 L2 12 L9.8 9.8 Z"
+                fill="currentColor"
+                fillOpacity="0.9"
+              />
+            </svg>
+            <span className="font-semibold text-white shrink-0 tracking-tight">Polaris</span>
+          </button>
           <span className="text-slate-600">/</span>
           <span className="text-slate-400 text-sm truncate max-w-[160px]">{model.systemName}</span>
         </div>

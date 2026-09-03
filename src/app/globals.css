@@ -23,39 +23,220 @@ body {
 .polaris-scene {
   position: relative;
   min-height: 100vh;
-  background:
-    radial-gradient(ellipse 900px 560px at 50% -8%, rgba(34, 211, 238, 0.14), transparent 62%),
-    radial-gradient(ellipse 700px 500px at 100% 100%, rgba(56, 189, 248, 0.08), transparent 60%),
-    #050810;
+}
+
+/* ---- Space backdrop ----------------------------------------------------
+   A fixed, viewport-locked deep-space scene: nebula wash, layered
+   starfields, a hero "Polaris" star with photographic diffraction spikes,
+   and the occasional shooting star. Fixed (not absolute) so it never has
+   to be re-sized to page content height and reads as "looking through a
+   window into space" while the page scrolls over it. */
+
+.space-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
   overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 65% 42% at 18% 12%, rgba(34, 211, 238, 0.12), transparent 60%),
+    radial-gradient(ellipse 55% 46% at 88% 18%, rgba(129, 140, 248, 0.11), transparent 62%),
+    radial-gradient(ellipse 62% 50% at 12% 88%, rgba(168, 85, 247, 0.09), transparent 65%),
+    radial-gradient(ellipse 50% 42% at 92% 92%, rgba(45, 212, 191, 0.08), transparent 60%),
+    radial-gradient(ellipse 90% 55% at 50% 0%, rgba(10, 18, 34, 0.55), transparent 72%),
+    linear-gradient(180deg, #03040a 0%, #050810 40%, #070b16 100%);
 }
 
-.polaris-scene::before {
-  content: "";
+.star-field {
   position: absolute;
   inset: 0;
-  background-image:
-    linear-gradient(rgba(148, 197, 255, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 197, 255, 0.055) 1px, transparent 1px);
-  background-size: 42px 42px;
-  mask-image: radial-gradient(ellipse 80% 65% at 50% 20%, black 40%, transparent 90%);
-  pointer-events: none;
+  width: 1px;
+  height: 1px;
+  background: transparent;
+  border-radius: 50%;
 }
 
-.polaris-scene::after {
-  content: "";
+.star-field.layer-a {
+  animation: star-twinkle-a 5.5s ease-in-out infinite;
+}
+
+.star-field.layer-b {
+  animation: star-twinkle-b 7.5s ease-in-out infinite 0.4s;
+}
+
+@keyframes star-twinkle-a {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes star-twinkle-b {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.bright-star {
   position: absolute;
-  inset: 0;
-  background-image:
-    radial-gradient(1.5px 1.5px at 12% 18%, rgba(226, 232, 240, 0.55), transparent),
-    radial-gradient(1px 1px at 26% 62%, rgba(226, 232, 240, 0.4), transparent),
-    radial-gradient(1.5px 1.5px at 41% 8%, rgba(226, 232, 240, 0.5), transparent),
-    radial-gradient(1px 1px at 58% 34%, rgba(226, 232, 240, 0.35), transparent),
-    radial-gradient(1.5px 1.5px at 73% 72%, rgba(226, 232, 240, 0.45), transparent),
-    radial-gradient(1px 1px at 87% 22%, rgba(226, 232, 240, 0.4), transparent),
-    radial-gradient(1.5px 1.5px at 95% 55%, rgba(226, 232, 240, 0.35), transparent),
-    radial-gradient(1px 1px at 6% 80%, rgba(226, 232, 240, 0.3), transparent);
-  pointer-events: none;
+  border-radius: 50%;
+  background: #eef7ff;
+  box-shadow: 0 0 6px 1px rgba(224, 247, 255, 0.85);
+}
+
+@keyframes bright-star-twinkle {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.75);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+.polaris-hero-star {
+  position: absolute;
+  left: 50%;
+  top: 12%;
+}
+
+.polaris-hero-star .bloom {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 300px;
+  height: 300px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(233, 250, 255, 0.85) 0%,
+    rgba(103, 232, 249, 0.32) 20%,
+    rgba(34, 211, 238, 0.14) 42%,
+    transparent 70%
+  );
+  filter: blur(2px);
+  animation: polaris-star-breathe 4.8s ease-in-out infinite;
+}
+
+.polaris-hero-star .spikes {
+  position: absolute;
+  inset: -130px;
+  animation: polaris-spin-slower 140s linear infinite;
+}
+
+.polaris-hero-star .spike {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: linear-gradient(90deg, transparent 0%, rgba(224, 247, 255, 0.85) 50%, transparent 100%);
+}
+
+.polaris-hero-star .spike.h {
+  width: 340px;
+  height: 1.5px;
+  transform: translate(-50%, -50%);
+}
+
+.polaris-hero-star .spike.v {
+  width: 1.5px;
+  height: 230px;
+  transform: translate(-50%, -50%);
+}
+
+.polaris-hero-star .spike.d1 {
+  width: 160px;
+  height: 1px;
+  opacity: 0.5;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.polaris-hero-star .spike.d2 {
+  width: 160px;
+  height: 1px;
+  opacity: 0.5;
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.polaris-hero-star .core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  transform: translate(-50%, -50%);
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow:
+    0 0 12px 4px rgba(255, 255, 255, 0.95),
+    0 0 42px 14px rgba(103, 232, 249, 0.65),
+    0 0 96px 32px rgba(34, 211, 238, 0.3);
+}
+
+.polaris-hero-star .label {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 108px);
+  transform: translate(-50%, 0);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  color: #a5e8ff;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+@keyframes polaris-star-breathe {
+  0%,
+  100% {
+    opacity: 0.85;
+    transform: translate(-50%, -50%) scale(0.93);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.07);
+  }
+}
+
+@keyframes polaris-spin-slower {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.shooting-star {
+  position: absolute;
+  width: 130px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9), transparent);
+  opacity: 0;
+  animation: shoot 10s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
+}
+
+@keyframes shoot {
+  0% {
+    opacity: 0;
+    transform: translate(-8vw, -4vh) rotate(-22deg) scaleX(0.3);
+  }
+  3% {
+    opacity: 1;
+  }
+  13% {
+    opacity: 0;
+    transform: translate(26vw, 15vh) rotate(-22deg) scaleX(1);
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 .hud-panel {

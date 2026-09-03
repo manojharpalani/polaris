@@ -1,5 +1,7 @@
 "use client";
 
+import SpaceBackdrop from "@/components/SpaceBackdrop";
+
 function BrandMark({ className = "w-8 h-8" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none">
@@ -121,12 +123,17 @@ function StepPanel({ n, title, body }: { n: string; title: string; body: string 
 export default function Landing({ onEnter }: { onEnter: () => void }) {
   return (
     <div className="polaris-scene">
-      <div className="relative max-w-6xl mx-auto px-6 py-10 flex flex-col gap-24">
+      <SpaceBackdrop />
+      <div className="relative z-10 max-w-6xl mx-auto px-6 py-10 flex flex-col gap-24">
         <header className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          >
             <BrandMark className="w-5 h-5 text-cyan-400" />
             <span className="font-semibold text-white tracking-tight">Polaris</span>
-          </div>
+          </button>
           <button
             onClick={onEnter}
             className="hud-label text-slate-300 border border-slate-600/50 rounded-md px-3.5 py-2 hover:bg-slate-800/60 transition-colors"

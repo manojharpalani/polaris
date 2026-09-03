@@ -7,6 +7,7 @@ import {
   type NonFunctionalRequirement,
   type RequirementInput,
 } from "@/lib/c4-schema";
+import SpaceBackdrop from "@/components/SpaceBackdrop";
 
 const NFR_LABELS: Record<NfrCategory, string> = {
   scale: "Scale (users / RPS / data volume)",
@@ -225,11 +226,13 @@ export default function RequirementsForm({
   submitting,
   error,
   initial,
+  onHome,
 }: {
   onSubmit: (input: RequirementInput) => void;
   submitting: boolean;
   error?: string | null;
   initial?: RequirementInput;
+  onHome?: () => void;
 }) {
   const [systemName, setSystemName] = useState(initial?.systemName ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -317,13 +320,19 @@ export default function RequirementsForm({
 
   return (
     <div className="polaris-scene">
+      <SpaceBackdrop />
       <form
         onSubmit={handleSubmit}
-        className="relative max-w-3xl mx-auto flex flex-col gap-6 py-14 px-4"
+        className="relative z-10 max-w-3xl mx-auto flex flex-col gap-6 py-14 px-4"
       >
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={onHome}
+              disabled={!onHome}
+              className={`flex items-center gap-2.5 ${onHome ? "hover:opacity-80 transition-opacity" : ""}`}
+            >
               <svg viewBox="0 0 24 24" className="w-7 h-7 text-cyan-400" fill="none">
                 <path
                   d="M12 2 L14.2 9.8 L22 12 L14.2 14.2 L12 22 L9.8 14.2 L2 12 L9.8 9.8 Z"
@@ -332,7 +341,7 @@ export default function RequirementsForm({
                 />
               </svg>
               <h1 className="text-3xl font-semibold text-white tracking-tight">Polaris</h1>
-            </div>
+            </button>
             <p className="hud-label text-slate-500 mt-2">
               North-star architecture synthesis engine
             </p>

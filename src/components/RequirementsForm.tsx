@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { UserButton } from "@clerk/nextjs";
+import posthog from "posthog-js";
 import {
   NFR_CATEGORIES,
   type NfrCategory,
@@ -329,7 +330,8 @@ export default function RequirementsForm({
     description.trim().length > 0 &&
     hasFunctionalReq;
 
-  function loadSample(mission: RequirementInput) {
+  function loadSample(mission: RequirementInput, sample: "consumer" | "enterprise") {
+    posthog.capture("sample_loaded", { sample });
     setSystemName(mission.systemName);
     setDescription(mission.description);
     setActors(mission.actors);
@@ -387,6 +389,13 @@ export default function RequirementsForm({
       return;
     }
     setFormErrors([]);
+
+    posthog.capture("architecture_generation_requested", {
+      actor_count: finalActors.length,
+      functional_requirement_count: finalFunctionalRequirements.length,
+      non_functional_requirement_count: finalNfr.length,
+      constraint_count: finalConstraints.length,
+    });
 
     onSubmit({
       systemName: systemName.trim(),
@@ -450,14 +459,14 @@ export default function RequirementsForm({
           <div className="flex items-center gap-3 flex-wrap">
             <button
               type="button"
-              onClick={() => loadSample(SAMPLE_MISSION_CONSUMER)}
+              onClick={() => loadSample(SAMPLE_MISSION_CONSUMER, "consumer")}
               className="hud-label text-cyan-300/90 border border-cyan-400/25 rounded-md px-3 py-2 hover:bg-cyan-500/10 hover:border-cyan-400/40 transition-colors"
             >
               ⟡ Load consumer sample
             </button>
             <button
               type="button"
-              onClick={() => loadSample(SAMPLE_MISSION_ENTERPRISE)}
+              onClick={() => loadSample(SAMPLE_MISSION_ENTERPRISE, "enterprise")}
               className="hud-label text-cyan-300/90 border border-cyan-400/25 rounded-md px-3 py-2 hover:bg-cyan-500/10 hover:border-cyan-400/40 transition-colors"
             >
               ⟡ Load enterprise sample

@@ -8,6 +8,7 @@ import {
   RequirementInputSchema,
 } from "@/lib/c4-schema";
 import { COMPONENT_SYSTEM_PROMPT, buildComponentUserPrompt } from "@/lib/prompt";
+import { captureServerEvent } from "@/lib/posthog-server";
 import { z } from "zod";
 
 export const maxDuration = 60;
@@ -67,6 +68,10 @@ export async function POST(req: NextRequest) {
         requirements,
         neighbors,
       ),
+    });
+
+    await captureServerEvent(userId, "component_diagram_generated", {
+      component_node_count: object.nodes.length,
     });
 
     return NextResponse.json(object);

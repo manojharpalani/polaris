@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { anthropic, MODEL_ID } from "@/lib/anthropic";
 import { C4NodeSchema, CodeGraphSchema } from "@/lib/c4-schema";
 import { CODE_SYSTEM_PROMPT, buildCodeUserPrompt } from "@/lib/prompt";
+import { captureServerEvent } from "@/lib/posthog-server";
 import { z } from "zod";
 
 export const maxDuration = 60;
@@ -54,6 +55,10 @@ export async function POST(req: NextRequest) {
         providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
       },
       prompt: buildCodeUserPrompt(component, container, systemName),
+    });
+
+    await captureServerEvent(userId, "code_diagram_generated", {
+      code_node_count: object.nodes.length,
     });
 
     return NextResponse.json(object);

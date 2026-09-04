@@ -2,6 +2,7 @@
 
 import SpaceBackdrop from "@/components/SpaceBackdrop";
 import { Show, UserButton, useClerk, useUser } from "@clerk/nextjs";
+import posthog from "posthog-js";
 
 function BrandMark({ className = "w-8 h-8" }: { className?: string }) {
   return (
@@ -132,6 +133,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
   // button below.
   function handleEnter() {
     if (isSignedIn) {
+      posthog.capture("architecture_engine_entered");
       onEnter();
     } else {
       openSignIn();

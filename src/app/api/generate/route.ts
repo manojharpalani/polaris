@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { anthropic, MODEL_ID } from "@/lib/anthropic";
 import { C4ModelSchema, RequirementInputSchema } from "@/lib/c4-schema";
 import { SYSTEM_PROMPT, buildUserPrompt } from "@/lib/prompt";
+import { captureServerEvent } from "@/lib/posthog-server";
 
 export const maxDuration = 60;
 
@@ -48,6 +49,11 @@ export async function POST(req: NextRequest) {
         providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
       },
       prompt: buildUserPrompt(parsed.data),
+    });
+
+    await captureServerEvent(userId, "architecture_generated", {
+      context_node_count: object.context.nodes.length,
+      container_node_count: object.containers.nodes.length,
     });
 
     return NextResponse.json(object);

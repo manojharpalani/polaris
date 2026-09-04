@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, useUser } from "@clerk/nextjs";
+import posthog from "posthog-js";
 import type {
   C4Edge,
   C4Graph,
@@ -175,6 +176,7 @@ async function parseApiResponse<T>(res: Response): Promise<T> {
 }
 
 export default function Home() {
+  const { isLoaded, isSignedIn, user } = useUser();
   const [hasEntered, setHasEntered] = useState(false);
   const [lastInput, setLastInput] = useState<RequirementInput | undefined>();
   const [model, setModel] = useState<C4Model | null>(null);
@@ -189,6 +191,33 @@ export default function Home() {
   const [expandError, setExpandError] = useState<string | null>(null);
   const [editingRequirements, setEditingRequirements] = useState(false);
   const exportRef = useRef<{ exportPng: () => void; exportSvg: () => void } | null>(null);
+  const identifiedUserIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    if (!isSignedIn || !user) {
+      if (identifiedUserIdRef.current) {
+        posthog.reset();
+        identifiedUserIdRef.current = null;
+      }
+      return;
+    }
+
+    if (identifiedUserIdRef.current === user.id) return;
+
+    if (identifiedUserIdRef.current) {
+      posthog.reset();
+    }
+
+    posthog.identify(user.id, {
+      ...(user.primaryEmailAddress?.emailAddress && {
+        email: user.primaryEmailAddress.emailAddress,
+      }),
+      ...(user.fullName && { name: user.fullName }),
+    });
+    identifiedUserIdRef.current = user.id;
+  }, [isLoaded, isSignedIn, user]);
 
   // Which top-level screen is showing — used only to reset scroll position
   // on transitions below, so e.g. clicking a CTA near the bottom of the
@@ -257,6 +286,7 @@ export default function Home() {
       }
       return next;
     });
+    posthog.capture("node_deleted");
     setSelected(null);
   }
 
@@ -278,6 +308,7 @@ export default function Home() {
         ],
       });
     });
+    posthog.capture("node_added", { node_kind: kind, graph_level: ref.kind });
     setSelected({ kind: "node", id });
   }
 
@@ -323,6 +354,7 @@ export default function Home() {
       }
       return prev;
     });
+    posthog.capture("relationship_deleted");
     setSelected(null);
   }
 
@@ -339,6 +371,7 @@ export default function Home() {
         edges: [...g.edges, { id, source, target, label: "communicates with" }],
       });
     });
+    posthog.capture("relationship_added", { graph_level: ref.kind });
     setSelected({ kind: "edge", id });
   }
 
@@ -451,6 +484,7 @@ export default function Home() {
     a.download = `${slugify(model.systemName) || "polaris"}.dsl`;
     a.click();
     URL.revokeObjectURL(url);
+    posthog.capture("diagram_exported", { format: "structurizr_dsl" });
   }
 
   if (!hasEntered) {
@@ -525,13 +559,19 @@ export default function Home() {
             Export DSL
           </button>
           <button
-            onClick={() => exportRef.current?.exportPng()}
+            onClick={() => {
+              exportRef.current?.exportPng();
+              posthog.capture("diagram_exported", { format: "png" });
+            }}
             className="hud-label text-slate-300 px-3 py-1.5 rounded-md border border-slate-600/50 hover:bg-slate-800/60 transition-colors"
           >
             Export PNG
           </button>
           <button
-            onClick={() => exportRef.current?.exportSvg()}
+            onClick={() => {
+              exportRef.current?.exportSvg();
+              posthog.capture("diagram_exported", { format: "svg" });
+            }}
             className="hud-label text-slate-950 px-3 py-1.5 rounded-md bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-400 hover:to-sky-400 shadow-[0_0_16px_-4px_rgba(34,211,238,0.7)] transition-all"
           >
             Export SVG

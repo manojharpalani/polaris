@@ -1,5 +1,6 @@
 import { generateObject } from "ai";
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { anthropic, MODEL_ID } from "@/lib/anthropic";
 import {
   C4NodeSchema,
@@ -20,6 +21,11 @@ const BodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: "Sign in to generate an architecture." }, { status: 401 });
+  }
+
   let body: unknown;
   try {
     body = await req.json();

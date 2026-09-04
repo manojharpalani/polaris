@@ -1,7 +1,7 @@
 "use client";
 
 import SpaceBackdrop from "@/components/SpaceBackdrop";
-import { SignInButton, SignUpButton, Show, UserButton } from "@clerk/nextjs";
+import { Show, UserButton, useClerk, useUser } from "@clerk/nextjs";
 
 function BrandMark({ className = "w-8 h-8" }: { className?: string }) {
   return (
@@ -122,6 +122,22 @@ function StepPanel({ n, title, body }: { n: string; title: string; body: string 
 }
 
 export default function Landing({ onEnter }: { onEnter: () => void }) {
+  const { openSignIn } = useClerk();
+  const { isSignedIn } = useUser();
+
+  // Entering the engine (and generating an architecture) requires an
+  // account. Signed-in users go straight in; signed-out users get Clerk's
+  // sign-in modal, which itself offers a "Don't have an account? Sign up"
+  // link — one entry point covers both, per the single sign-in/sign-up
+  // button below.
+  function handleEnter() {
+    if (isSignedIn) {
+      onEnter();
+    } else {
+      openSignIn();
+    }
+  }
+
   return (
     <div className="polaris-scene">
       <SpaceBackdrop />
@@ -137,22 +153,18 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
           </button>
           <div className="flex items-center gap-3">
             <Show when="signed-out">
-              <SignInButton mode="modal">
-                <button className="hud-label text-slate-300 hover:text-white transition-colors">
-                  Sign in
-                </button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <button className="hud-label text-slate-300 border border-slate-600/50 rounded-md px-3.5 py-2 hover:bg-slate-800/60 transition-colors">
-                  Sign up
-                </button>
-              </SignUpButton>
+              <button
+                onClick={() => openSignIn()}
+                className="hud-label text-slate-300 hover:text-white transition-colors"
+              >
+                Sign in
+              </button>
             </Show>
             <Show when="signed-in">
               <UserButton />
             </Show>
             <button
-              onClick={onEnter}
+              onClick={handleEnter}
               className="hud-label text-slate-300 border border-slate-600/50 rounded-md px-3.5 py-2 hover:bg-slate-800/60 transition-colors"
             >
               Enter the engine ▸
@@ -178,13 +190,13 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
             </p>
             <div className="flex flex-col gap-3 pt-2">
               <button
-                onClick={onEnter}
+                onClick={handleEnter}
                 className="w-full rounded-lg font-semibold py-3.5 px-6 tracking-wide bg-gradient-to-r from-cyan-500 to-sky-500 text-slate-950 hover:from-cyan-400 hover:to-sky-400 shadow-[0_0_28px_-6px_rgba(34,211,238,0.65)] transition-all"
               >
                 Generate your architecture ▸
               </button>
               <span className="text-xs text-slate-500">
-                No account required. Bring your requirements, get a diagram.
+                Free to use. Sign in to bring your requirements and get a diagram.
               </span>
             </div>
           </div>
@@ -253,7 +265,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
             with the built-in sample if you want to see it run before typing anything.
           </p>
           <button
-            onClick={onEnter}
+            onClick={handleEnter}
             className="mt-2 rounded-lg font-semibold py-3.5 px-8 tracking-wide bg-gradient-to-r from-cyan-500 to-sky-500 text-slate-950 hover:from-cyan-400 hover:to-sky-400 shadow-[0_0_28px_-6px_rgba(34,211,238,0.65)] transition-all"
           >
             Enter mission control ▸

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.47",
+    "@clerk/nextjs": "^7.9.1",
     "ai": "^7.0.89",
     "dagre": "^0.8.5",
     "html-to-image": "^1.11.13",

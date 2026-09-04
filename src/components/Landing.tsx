@@ -1,6 +1,7 @@
 "use client";
 
 import SpaceBackdrop from "@/components/SpaceBackdrop";
+import { SignInButton, SignUpButton, Show, UserButton } from "@clerk/nextjs";
 
 function BrandMark({ className = "w-8 h-8" }: { className?: string }) {
   return (
@@ -134,12 +135,29 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
             <BrandMark className="w-5 h-5 text-cyan-400" />
             <span className="font-semibold text-white tracking-tight">Polaris</span>
           </button>
-          <button
-            onClick={onEnter}
-            className="hud-label text-slate-300 border border-slate-600/50 rounded-md px-3.5 py-2 hover:bg-slate-800/60 transition-colors"
-          >
-            Enter the engine ▸
-          </button>
+          <div className="flex items-center gap-3">
+            <Show when="signed-out">
+              <SignInButton mode="modal">
+                <button className="hud-label text-slate-300 hover:text-white transition-colors">
+                  Sign in
+                </button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button className="hud-label text-slate-300 border border-slate-600/50 rounded-md px-3.5 py-2 hover:bg-slate-800/60 transition-colors">
+                  Sign up
+                </button>
+              </SignUpButton>
+            </Show>
+            <Show when="signed-in">
+              <UserButton />
+            </Show>
+            <button
+              onClick={onEnter}
+              className="hud-label text-slate-300 border border-slate-600/50 rounded-md px-3.5 py-2 hover:bg-slate-800/60 transition-colors"
+            >
+              Enter the engine ▸
+            </button>
+          </div>
         </header>
 
         <section className="grid md:grid-cols-2 gap-14 items-center pt-6">
@@ -166,7 +184,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
                 Generate your architecture ▸
               </button>
               <span className="text-xs text-slate-500">
-                No sign-up. Bring your requirements, get a diagram.
+                No account required. Bring your requirements, get a diagram.
               </span>
             </div>
           </div>

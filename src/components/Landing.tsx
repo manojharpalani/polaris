@@ -165,9 +165,11 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
             </Show>
             <button
               onClick={handleEnter}
-              className="hud-label text-slate-300 border border-slate-600/50 rounded-md px-3.5 py-2 hover:bg-slate-800/60 transition-colors"
+              title="Enter the engine"
+              className="flex items-center gap-2 hud-label text-emerald-400/90 border border-emerald-500/20 rounded-md px-3.5 py-2 hover:bg-emerald-500/10 hover:border-emerald-500/40 transition-colors"
             >
-              Enter the engine ▸
+              <span className="status-dot inline-block w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              engine ready
             </button>
           </div>
         </header>

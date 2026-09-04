@@ -497,6 +497,10 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 hud-label text-emerald-400/90 mr-1">
+            <span className="status-dot inline-block w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            engine ready
+          </div>
           {expandedIds.size > 0 && (
             <button
               onClick={() => setExpandedIds(new Set())}

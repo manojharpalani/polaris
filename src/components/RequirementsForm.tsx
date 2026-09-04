@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { UserButton } from "@clerk/nextjs";
 import {
   NFR_CATEGORIES,
   type NfrCategory,
@@ -424,9 +425,12 @@ export default function RequirementsForm({
             </span>
           </button>
 
-          <div className="flex items-center gap-2 hud-label text-emerald-400/90">
-            <span className="status-dot inline-block w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            engine ready
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 hud-label text-emerald-400/90">
+              <span className="status-dot inline-block w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              engine ready
+            </div>
+            <UserButton />
           </div>
         </header>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { UserButton } from "@clerk/nextjs";
 import type {
   C4Edge,
   C4Graph,
@@ -535,6 +536,7 @@ export default function Home() {
           >
             Export SVG
           </button>
+          <UserButton />
         </div>
       </header>
 

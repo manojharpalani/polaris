@@ -46,3 +46,9 @@ next-env.d.ts
 .claude/
 .idea/
 skills-lock.json
+
+# architecture diagram tooling: Structurizr CLI is downloaded on demand by
+# `npm run diagram` (scripts/render-architecture.mjs), not committed; its
+# intermediate Mermaid export is regenerated every run
+/.cache/
+architecture/.export/

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "diagram": "node scripts/render-architecture.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.47",
@@ -23,6 +24,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.17.0",
     "@tailwindcss/postcss": "^4",
     "@types/dagre": "^0.7.54",
     "@types/node": "^20",

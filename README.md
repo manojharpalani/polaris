@@ -94,6 +94,27 @@ unset, as a deliberate reminder to configure them — in production
   the signed-in user to PostHog and fires product events on generate/edit/
   export.
 
+## Architecture
+
+![Polaris container diagram](architecture/containers.png)
+
+This is Polaris's own C4 model — fittingly, given what the product does —
+kept as code rather than a stale drawing:
+
+- `architecture/workspace.dsl` — the source of truth, written in
+  [Structurizr DSL](https://docs.structurizr.com/dsl) (the same
+  architecture-as-code format `src/lib/structurizr.ts` exports user-generated
+  diagrams to). Update this file whenever a container, external dependency,
+  or major relationship changes.
+- `npm run diagram` (`scripts/render-architecture.mjs`) regenerates
+  `architecture/context.png` and `architecture/containers.png` from the DSL —
+  downloads and caches Structurizr CLI on first run (~100MB, gitignored),
+  validates the DSL, exports it to Mermaid, and renders both views to PNG via
+  `@mermaid-js/mermaid-cli`. Requires a JDK on `PATH`.
+- Commit the regenerated PNGs alongside your code change so the diagram in
+  this README never drifts from the DSL. There's also a System Context view
+  at `architecture/context.png`.
+
 ## Known limitations (by design, not oversight)
 
 - Manually dragging a node to reposition it is not preserved across edits —
